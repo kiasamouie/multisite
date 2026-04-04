@@ -1,0 +1,215 @@
+lsof -i :3000
+
+
+
+
+You have access to supabase CLI 
+
+Code Organization & Architecture Guidelines
+
+I'm building a modular, component-driven Next.js app. Follow these patterns:
+
+Folder Structure:
+
+/components/ organized by feature/context, not by type
+/components/admin/ — admin UI components only
+/components/site/ — public-facing site components (nav, footer)
+Each feature gets its own folder: /components/feature-name/index.tsx
+Sub-components stay near their parent: /components/Resource/SidePanel.tsx
+Component Philosophy:
+
+Use Refine.js for data/state logic (useTable, useCreate, etc.)
+Write our own lean UI layer in React + Tailwind (no bulky UI libraries like Material-UI)
+Favor composition: pass props for config, avoid hardcoding behavior
+One concern per file: separate data fetching, rendering, styling
+API Layer:
+
+Admin pages use /api/admin/* endpoints (service role, bypasses RLS)
+Tenant pages use RLS-enforced endpoints via browser client
+Never call Supabase directly from components—use API routes for business logic
+Reusability:
+
+Extract to ui or lib only if shared across multiple apps
+Keep app-specific logic in src
+Pass configuration via props, never hardcode tenant-specific logic
+File Naming:
+
+Components: PascalCase (SiteNav.tsx, TenantFlagsView.tsx)
+Utilities: camelCase (api-auth.ts, tenant.ts)
+Keep imports clean: use barrel exports (index.ts) for folders
+Testing Before Shipping:
+
+Run pnpm tsc --noEmit to verify TypeScript
+Run pnpm build to verify production build
+Always check imports are updated when moving files
+
+
+🎨 Frontend / App Layer
+Next.js (App Router)
+React 19
+TypeScript
+Tailwind CSS
+
+👉 Handles:
+
+public websites
+tenant admin
+platform admin
+🏗️ Monorepo Architecture
+Turbo (monorepo tool)
+
+Structure:
+
+/apps/web           → main app (sites + admin)
+/packages/ui        → shared UI components
+/packages/template  → page/section/block renderer
+/packages/lib       → core logic (backend helpers)
+🗄️ Backend / Database
+Supabase
+
+Includes:
+
+PostgreSQL database
+Supabase Auth
+Row Level Security (RLS)
+Supabase Storage
+
+👉 This is your entire backend
+
+🔐 Authentication & Access Control
+Supabase Auth (email/password or magic link)
+Membership system (custom table)
+
+Roles:
+
+platform_admin
+tenant_owner
+tenant_admin
+tenant_editor
+🧠 Multi-Tenant System
+Domain-based tenant resolution
+Middleware (middleware.ts)
+Tenant context layer (packages/lib/tenant)
+
+Routing:
+
+/admin              → platform admin
+tenant.com/admin    → tenant admin
+tenant.com          → public site
+🧩 Content System (Core Engine)
+Page → Section → Block architecture
+
+Stored in DB:
+
+pages
+sections
+blocks (JSON content)
+
+Rendered via:
+
+/packages/template
+
+👉 This is your website builder engine
+
+🎛️ Feature Flag System
+DB-driven feature flags
+Defaults + overrides
+
+Used for:
+
+enabling/disabling features per tenant
+plan-based access
+💳 Payments
+Stripe
+
+Handles:
+
+subscriptions (starter / growth / pro)
+checkout
+billing portal
+webhooks
+✉️ Email
+Resend
+
+Used for:
+
+contact forms
+system emails (billing, alerts)
+⚡ API Layer
+Next.js Route Handlers (/api/*)
+
+Includes:
+
+admin APIs
+Stripe endpoints
+contact/email
+event tracking
+revalidation
+📊 Analytics / Events
+Custom event tracking system
+Stored in database
+🚦 Rate Limiting
+Upstash Redis + Ratelimit
+
+Used for:
+
+API protection
+form submissions
+📦 Storage
+Supabase Storage
+
+Used for:
+
+images
+media uploads
+tenant-scoped assets
+🧠 Validation & Types
+Zod (validation)
+Shared TypeScript types
+🌍 Hosting & Infrastructure
+Vercel
+
+Handles:
+
+deployment
+serverless functions
+edge runtime
+🌐 DNS / Domains
+Cloudflare
+
+Handles:
+
+DNS
+domain routing
+optional caching/security
+🧠 🏗️ ARCHITECTURE SUMMARY
+User → Domain (Cloudflare)
+        ↓
+Vercel (Next.js app)
+        ↓
+Middleware → resolve tenant
+        ↓
+Supabase (RLS enforced data)
+        ↓
+UI rendered via template system
+🔥 WHAT YOU’VE BUILT (REALISTIC VIEW)
+
+You now have:
+
+✅ Multi-tenant SaaS platform
+✅ Website builder engine
+✅ Admin system (platform + tenant)
+✅ Subscription billing
+✅ Email system
+✅ Feature flag system
+✅ Scalable architecture
+
+🧠 Final perspective
+
+This is no longer:
+
+“a website project”
+
+This is:
+
+A full SaaS website builder platform (like a lightweight Webflow / Squarespace)

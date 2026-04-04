@@ -1,0 +1,26 @@
+{
+  "name": "@repo/template",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./renderer/page": "./src/renderer/PageRenderer.tsx",
+    "./renderer/section": "./src/renderer/SectionRenderer.tsx",
+    "./renderer/block": "./src/renderer/BlockRenderer.tsx",
+    "./renderer/context": "./src/renderer/PageContext.tsx",
+    "./types": "./src/types/index.ts",
+    "./blocks/registry": "./src/blocks/registry.ts",
+    "./features/registry": "./src/features/registry.ts"
+  },
+  "dependencies": {
+    "@repo/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

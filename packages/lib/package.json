@@ -1,0 +1,45 @@
+{
+  "name": "@repo/lib",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./supabase/server": "./src/supabase/server.ts",
+    "./supabase/browser": "./src/supabase/browser.ts",
+    "./supabase/admin": "./src/supabase/admin.ts",
+    "./supabase/types": "./src/supabase/types.ts",
+    "./tenant/resolver": "./src/tenant/resolver.ts",
+    "./tenant/context": "./src/tenant/context.ts",
+    "./tenant/platform": "./src/tenant/platform.ts",
+    "./tenant/provisioning": "./src/tenant/provisioning.ts",
+    "./tenant/featureFlags": "./src/tenant/featureFlags.ts",
+    "./stripe/client": "./src/stripe/client.ts",
+    "./stripe/plans": "./src/stripe/plans.ts",
+    "./flags/check": "./src/flags/check.ts",
+    "./flags/defaults": "./src/flags/defaults.ts",
+    "./resend/client": "./src/resend/client.ts",
+    "./resend/templates": "./src/resend/templates.ts",
+    "./validation/schemas": "./src/validation/schemas.ts",
+    "./events/track": "./src/events/track.ts",
+    "./config/dashboardConfig": "./src/config/dashboardConfig.ts",
+    "./config/pageTemplates": "./src/config/pageTemplates.ts",
+    "./config/stitchBlockMap": "./src/config/stitchBlockMap.ts",
+    "./media/resolve": "./src/media/resolve.ts",
+    "./domain": "./src/domain.ts",
+    "./logger": "./src/logger.ts",
+    "./ratelimit": "./src/ratelimit.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "resend": "^4.0.0",
+    "stripe": "^17.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
+    "typescript": "^5.7.0"
+  }
+}
