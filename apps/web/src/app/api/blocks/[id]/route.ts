@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { authenticateRequest, requireTenantMembership } from "@/lib/api-auth";
 import { blockUpdateSchema } from "@repo/lib/validation/schemas";
 import type { Json } from "@repo/lib/supabase/types";
@@ -55,6 +56,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidateTag("pages");
   return NextResponse.json(data);
 }
 
@@ -75,5 +77,6 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
 
   const { error } = await auth.admin.from("blocks").delete().eq("id", blockId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidateTag("pages");
   return NextResponse.json({ success: true });
 }

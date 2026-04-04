@@ -4,6 +4,7 @@ import { createServerClient } from "@repo/lib/supabase/server";
 import { createAdminClient } from "@repo/lib/supabase/admin";
 import { getPlatformAdmin } from "@repo/lib/tenant/platform";
 import { resolveTenantsByUserId } from "@repo/lib/tenant/resolver";
+import { ensurePageMediaBlock } from "@repo/lib/media/blocks";
 import type { Database, Json } from "@repo/lib/supabase/types";
 import { NextResponse } from "next/server";
 
@@ -200,6 +201,15 @@ export async function POST(request: Request) {
           associatedPages = validPageIds;
         }
       }
+    }
+
+    // Auto-create page_media block for each associated page (idempotent)
+    if (associatedPages.length > 0) {
+      const blockUsageType = usageType || "general";
+      for (const pid of associatedPages) {
+        await ensurePageMediaBlock(adminSupabase, pid, blockUsageType);
+      }
+      revalidateTag("pages");
     }
 
     // Invalidate media cache so pages re-fetch fresh associations

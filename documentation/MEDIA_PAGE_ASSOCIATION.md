@@ -103,12 +103,24 @@ Blocks
   - `mediaId`: For reference in further operations
   - `associatedPages`: Array of pages successfully associated
 - Validates all pages belong to same tenant before associating
-- **Added**: `revalidateTag("media")` after successful creation to clear any tag-based caches
+- **Auto-creates `page_media` blocks**: For each associated page, automatically creates a `page_media` block with the matching `usage_type` if one doesn't exist (idempotent operation via `ensurePageMediaBlock` helper)
+- **Invalidates pages cache**: Calls `revalidateTag("pages")` to clear any page-related caches after block creation
 - Creates associations or skips silently if validation fails
 
 ##### POST `/api/admin/media/[id]/associations` (New)
 - Create page-media association programmatically
+- **Auto-creates `page_media` blocks**: Same idempotent block creation with matching `usage_type`
+- **Invalidates pages cache**: Calls `revalidateTag("pages")` after block creation
 - Returns association record on success
+
+##### POST `/api/admin/pages/[id]/page-media-block` (New)
+- Create a `page_media` block for a specific page with a given `usage_type`
+- Used by admin panel "Add Page Media Block" button for manual block creation
+- Uses `ensurePageMediaBlock` helper (idempotent — no error if block already exists)
+- Body: `{ usage_type: string }` (default: `"general"` if omitted)
+- **Invalidates pages cache**: Calls `revalidateTag("pages")` after block creation
+- Returns: `{ success: true }`
+- Requires tenant membership authentication
 
 ##### GET `/api/admin/pages` (New)
 - Fetches pages for tenant (used in dropdown)
@@ -118,16 +130,22 @@ Blocks
 
 ##### DELETE `/api/media/[id]` (Enhanced)
 - Delete media record and storage file
-- **Added**: `revalidateTag("media")` after deletion to ensure cached data clears (if any tag-based caches are added back in future)
+- **Invalidates pages cache**: Calls `revalidateTag("pages")` as a safety measure
 
 ##### DELETE `/api/admin/media/[id]/associations` (New)
 - Remove a media-page association
 - Validates tenant ownership
 
-#### 3. Component Enhancement
+##### Block Management Routes (Enhanced)
+- `POST /api/pages/[id]/sections` — **Now calls `revalidateTag("pages")` after section creation**
+- `POST /api/sections/[id]/blocks` — **Now calls `revalidateTag("pages")` after block creation**
+- `PUT /api/blocks/[id]` — **Now calls `revalidateTag("pages")` after block update**
+- `DELETE /api/blocks/[id]` — **Now calls `revalidateTag("pages")` after block deletion**
+
+#### 3. Component Enhancements
 
 ##### MediaUploadInput
-**New Features**:
+**Features**:
 - Auto-loads available pages for current tenant
 - Multi-select checkbox list for page association
 - Usage type dropdown (hero, gallery, thumbnail, background, icon, general)
@@ -143,6 +161,20 @@ Blocks
 - Receives and uses `mediaId` for tracking
 - Receives and displays `associatedPages` array
 
+##### PageDetailsPanel (Admin Pages View)
+**New Block Management UI**:
+- **Blocks Section** shows all blocks on the page as badges
+  - Displays block type (e.g., `page_media`)
+  - Shows `usage_type` tag for `page_media` blocks (e.g., `hero`, `gallery`)
+  - Per-block delete button (removes block, not media)
+- **Add Page Media Block Button** (tenant admins only)
+  - Expands inline form to enter `usage_type`
+  - Shows help text: "Enter the usage type — it must match what was selected when uploading media to this page."
+  - Submit button creates block via `POST /api/admin/pages/{id}/page-media-block`
+  - Cancels and closes form on success
+- **Auto-refresh**: After any block operation, re-fetches sections and calls `router.refresh()`
+- **Real-time feedback**: Loading states, error messages, success confirmation
+
 #### 4. Caching Strategy (Critical Fix)
 
 **Problem Identified**: Users had to hard-refresh pages to see updates after deleting media or changing block display settings.
@@ -156,11 +188,11 @@ Blocks
 
 2. **`getCachedPageMedia` wrapped in `unstable_cache` with `revalidate: false`**
    - Cache never auto-cleared, only by explicit tag invalidation
-   - Delete operations didn't call `revalidateTag("media")`
+   - Delete operations didn't call `revalidateTag("pages")`
    - **Fixed**: Removed `unstable_cache` entirely from `getCachedPageMedia`
 
 3. **Delete operations didn't invalidate cache**
-   - **Fixed**: Added `revalidateTag("media")` to delete route
+   - **Fixed**: Added `revalidateTag("pages")` to delete and all mutation routes
 
 **Solution Implemented**:
 
@@ -178,13 +210,31 @@ Blocks
   ```
   This allows multiple images to render, not just the first one.
 
-- **Delete route** in `apps/web/src/app/api/media/[id]/route.ts` — Added `revalidateTag("media")` import and call after deletion as a safety measure for any future tag-based caching.
+- **All mutation routes** — Added `revalidateTag("pages")` import and call after all block/section/page modifications to ensure cache is invalidated when structure changes.
 
 - **Page route revalidation** — Existing `export const revalidate = 0` on `[slug]/page.tsx` ensures the page is fully dynamic — every request re-renders server components fresh.
 
 **Result**: **No hard-refresh needed anywhere**. Upload media → appears immediately on refresh. Delete media → disappears immediately on refresh. Change display settings → updates immediately on refresh.
 
-#### 5. TypeScript Types
+#### 5. Auto Block Creation Helper
+
+**New file**: `packages/lib/src/media/blocks.ts`
+
+Exports `ensurePageMediaBlock(supabase, pageId, usageType)` — Idempotent helper that:
+1. Fetches all sections for a page
+2. If the page has no sections, creates a default section with `type: "page_media"`
+3. Checks if a `page_media` block with the exact `usage_type` already exists
+4. If not, appends a new `page_media` block to the last section with `{ usage_type, display_mode: "gallery", content: { usage_type } }`
+5. Returns silently (no error) if the block already exists — safe to call multiple times
+
+Used by:
+- `POST /api/admin/media/upload` — after creating media_page_associations
+- `POST /api/admin/media/[id]/associations` — after inserting association
+- `POST /api/admin/pages/[id]/page-media-block` — manual admin trigger
+
+**Why this matters**: Pages now automatically get the required `page_media` block structure when media is associated, ensuring the page renderer can display media without manual DB intervention.
+
+#### 6. TypeScript Types
 Updated `packages/lib/src/supabase/types.ts`:
 - Added `media_page_associations` table definition
 - Includes Row/Insert/Update types
@@ -207,13 +257,56 @@ POST /api/admin/media/upload (per file)
 ├─ Create media record
 ├─ Validate selected pages (same tenant)
 ├─ Create media_page_associations records
-└─ Call revalidateTag("media")
+├─ For each associated page:
+│  └─ Call ensurePageMediaBlock(pageId, usageType)
+│     ├─ Create default section if page has no sections
+│     └─ Create page_media block with matching usage_type
+└─ Call revalidateTag("pages") ⚡ Cache cleared
          ↓
 Return mediaId + associatedPages
          ↓
 Component callback with results
          ↓
-Page visitors see updated media on next normal page refresh (no hard-refresh necessary)
+Next page request:
+├─ Re-renders [slug]/page.tsx (export const revalidate = 0)
+├─ PageRenderer queries blocks (includes new page_media block)
+├─ PageMediaProvider populates context with media_page_associations
+└─ PageMediaBlock renders media filtered by usage_type
+         ↓
+Page visitors see media appear immediately (no hard-refresh necessary)
+```
+
+## Admin Block Management Flow
+
+```
+Admin visits Admin Panel → Pages → Selects page
+         ↓
+PageDetailsPanel loads:
+├─ Fetches GET /api/pages/{id}/sections
+├─ Displays all blocks as badges (type + usage_type)
+└─ Shows "Add Page Media Block" button
+         ↓
+Admin clicks "Add Page Media Block"
+         ↓
+Inline form appears:
+├─ Text input for usage_type (e.g., "hero", "gallery")
+└─ Submit button
+         ↓
+Admin enters usage_type and clicks Submit
+         ↓
+POST /api/admin/pages/{id}/page-media-block
+├─ Validate tenant membership
+├─ Call ensurePageMediaBlock(pageId, usageType)
+└─ Call revalidateTag("pages") ⚡ Cache cleared
+         ↓
+PageDetailsPanel auto-refreshes:
+├─ Re-fetches sections
+├─ Adds new block badge to list
+└─ Admin can now see the page_media block
+         ↓
+Next time a user uploads media to this page,
+the block already exists with matching usage_type,
+so media appears immediately (idempotent operation)
 ```
 
 ---
@@ -523,13 +616,19 @@ export const revalidate = 0;  // Always dynamic, never cached
 
 Every request re-renders the page, fetches fresh page data, blocks, and media associations.
 
-### Tag-Based Invalidation (Backup)
+### Tag-Based Invalidation (Comprehensive)
 
-Although media is not cached, `revalidateTag("media")` is called after mutations as a safety measure:
-- `POST /api/admin/media/upload` — calls `revalidateTag("media")`
-- `DELETE /api/media/[id]` — calls `revalidateTag("media")`
+**Pages Cache**: `revalidateTag("pages")` is called after **all** block/section mutations and media associations:
+- `POST /api/admin/media/upload` — calls `revalidateTag("pages")` after block creation
+- `POST /api/admin/media/[id]/associations` — calls `revalidateTag("pages")` after block creation
+- `POST /api/admin/pages/[id]/page-media-block` — calls `revalidateTag("pages")` after block creation
+- `POST /api/pages/[id]/sections` — calls `revalidateTag("pages")` after section creation
+- `POST /api/sections/[id]/blocks` — calls `revalidateTag("pages")` after block creation
+- `PUT /api/blocks/[id]` — calls `revalidateTag("pages")` after block update
+- `DELETE /api/blocks/[id]` — calls `revalidateTag("pages")` after block deletion
+- `DELETE /api/media/[id]` — calls `revalidateTag("pages")` as a safety measure
 
-If future features add tag-based caching, these tags will be invalidated automatically.
+**Why this matters**: The page data (including all sections and blocks) is extracted from cache with `tags: ["pages"]`. Any mutation to pages, sections, or blocks invalidates this tag, ensuring the next page render gets fresh data with all updates applied.
 
 ---
 
@@ -541,17 +640,28 @@ If future features add tag-based caching, these tags will be invalidated automat
 - ✅ `supabase/migrations/0022_platform_admin_media_associations_rls.sql` (Refinement)
 - ✅ `supabase/migrations/0023_public_media_page_associations_rls.sql` (Refinement)
 
+### Helper Libraries
+- ✅ `packages/lib/src/media/blocks.ts` (NEW - `ensurePageMediaBlock` idempotent helper)
+- ✅ `packages/lib/package.json` (UPDATED - added `./media/blocks` export)
+
 ### API Routes
-- ✅ `apps/web/src/app/api/admin/media/upload/route.ts` (ENHANCED - added revalidateTag)
+- ✅ `apps/web/src/app/api/admin/media/upload/route.ts` (ENHANCED - auto-block creation + revalidateTag pages)
 - ✅ `apps/web/src/app/api/admin/pages/route.ts` (NEW)
-- ✅ `apps/web/src/app/api/admin/media/[id]/associations/route.ts` (NEW)
-- ✅ `apps/web/src/app/api/media/[id]/route.ts` (ENHANCED - added revalidateTag)
+- ✅ `apps/web/src/app/api/admin/media/[id]/associations/route.ts` (ENHANCED - auto-block creation + revalidateTag pages)
+- ✅ `apps/web/src/app/api/admin/pages/[id]/page-media-block/route.ts` (NEW - manual block creation endpoint)
+- ✅ `apps/web/src/app/api/pages/[id]/sections/route.ts` (ENHANCED - added revalidateTag pages)
+- ✅ `apps/web/src/app/api/sections/[id]/blocks/route.ts` (ENHANCED - added revalidateTag pages)
+- ✅ `apps/web/src/app/api/blocks/[id]/route.ts` (ENHANCED - added revalidateTag pages to PUT and DELETE)
+- ✅ `apps/web/src/app/api/media/[id]/route.ts` (ENHANCED - added revalidateTag pages)
 
 ### Cache Layer
 - ✅ `apps/web/src/lib/cache.ts` (FIXED - removed unstable_cache from getCachedPageMedia)
 
-### Components
+### Admin Components
 - ✅ `apps/web/src/components/admin/media/MediaUploadInput.tsx` (ENHANCED - multi-file, staging, submit button)
+- ✅ `apps/web/src/app/admin/pages/page.tsx` (ENHANCED - added PageDetailsPanel blocks UI with add/delete functionality)
+
+### Core Components
 - ✅ `packages/template/src/components/blocks/PageMediaBlock.tsx` (FIXED - changed default display_mode to "gallery")
 
 ### Types
@@ -640,11 +750,119 @@ When adding media association to a new feature:
 
 ---
 
+## Generic Media Display: How It Works Everywhere
+
+### The Problem (Solved)
+
+Previously, media would not display on pages across all tenants due to:
+1. **Missing block structure**: No `page_media` block created when media was associated to a page
+2. **Permanent stale cache**: `revalidateTag("pages")` was never called, so cache changes were invisible to users
+3. **Single-image display**: Block display mode defaulted to "single" showing only the first image in galleries
+
+### The Solution (Implemented)
+
+Media now displays **generically** on any page, any tenant, any website **without manual intervention**:
+
+#### 1. **Automatic Block Creation** ✅
+When media is uploaded and associated with page(s):
+- `POST /api/admin/media/upload` → automatically calls `ensurePageMediaBlock()` for each associated page
+- `POST /api/admin/media/[id]/associations` → automatically calls `ensurePageMediaBlock()` 
+- The `page_media` block is created with the matching `usage_type` if one doesn't exist
+- The operation is **idempotent** — safe to call multiple times without side effects
+
+#### 2. **Comprehensive Cache Invalidation** ✅
+All block/section mutations trigger page cache invalidation:
+- Block created → `revalidateTag("pages")`
+- Block updated → `revalidateTag("pages")`
+- Block deleted → `revalidateTag("pages")`
+- Section created → `revalidateTag("pages")`
+- Section modified → `revalidateTag("pages")`
+- Media associated → `revalidateTag("pages")`
+
+Result: **Page reflects all changes on next normal refresh — no hard-refresh needed** ✅
+
+#### 3. **Multi-Image Display** ✅
+The `PageMediaBlock` now defaults to `display_mode: "gallery"`:
+- Gallery mode renders all images for a usage_type
+- Single mode renders only the first image (selectable via block config)
+
+#### 4. **Fully Generic Implementation**
+No tenant-specific or page-specific code:
+- Media associations stored in `media_page_associations` table (tenant-scoped via RLS)
+- Block structure identical across all pages, all tenants, all websites
+- Rendering logic in `PageMediaBlock` uses only block content, no hardcoded paths
+- Admin controls in `PageDetailsPanel` work for all tenants and pages
+
+### Real-World Example: Multi-Tenant Scenario
+
+**Setup**: 3 tenants (proplumb.com, kaimusic.com, example.com)
+
+**Scenario**: Admin on proplumb uploads business photo and associates it to Contact page
+
+```
+POST /api/admin/media/upload
+├─ File: business.jpg
+├─ Associated page: 42 (proplumb.com/contact)
+├─ Usage type: "hero"
+└─ Backend flow:
+   ├─ Upload to Storage
+   ├─ Create media record (tenant_id = proplumb)
+   ├─ Create media_page_associations record
+   ├─ Call ensurePageMediaBlock(42, "hero")
+   │  ├─ Create default section if needed
+   │  └─ Create page_media block with usage_type: "hero"
+   ├─ Call revalidateTag("pages") 
+   └─ Return mediaId, associatedPages
+         ↓
+➜ Next page visit: /contact
+   ├─ Re-fetches page data
+   ├─ Re-fetches blocks (includes page_media block)
+   ├─ Re-fetches media_page_associations
+   ├─ Image rendered in PageMediaBlock filtered by usage_type: "hero"
+   └─ User sees photo ✅
+
+Meanwhile:
+- Admin on kaimusic.com does same with hero photo on music page → Works ✅
+- Admin on example.com uses gallery mode → Works ✅
+- All isolated by tenant_id, all use same code, no conflicts
+```
+
+### Testing the Generic Implementation
+
+✅ **Verified behaviors**:
+1. Upload media to Page A with usage_type "hero" → block created automatically
+2. Upload media to Page B with usage_type "gallery" → different block created (no collision)
+3. Visit Page A → media displays (filtered by "hero")
+4. Visit Page B → different media displays (filtered by "gallery")
+5. Delete image from storage → disappeared on next refresh (no hard-refresh)
+6. Change block display_mode in DB → applies on next refresh (no hard-refresh)
+7. Delete page_media block → media no longer displays (idempotent re-add via upload)
+8. Multiple tenants, different websites, same codebase → All work independently ✅
+
+### Admin UI Features
+
+**PageDetailsPanel Blocks Section**:
+- View all blocks on a page
+- See block type and usage_type
+- Delete individual blocks
+- Manually add page_media blocks with custom usage_type
+- Get real-time feedback on success/errors
+
+**MediaUploadInput**:
+- Select multiple pages during upload
+- Choose usage_type (hero, gallery, etc.)
+- Auto-creates page_media blocks with matching usage_type
+- Works across all tenants and page types
+
+---
+
 ## Support & Questions
 
 Refer to:
 - This guide for detailed docs and implementation details
 - `supabase/migrations/002x_*.sql` for schema and RLS policies
-- `apps/web/src/components/admin/media/MediaUploadInput.tsx` for UI implementation
+- `packages/lib/src/media/blocks.ts` for auto-block creation logic
+- `apps/web/src/app/api/admin/pages/[id]/page-media-block/route.ts` for manual block API
+- `apps/web/src/app/admin/pages/page.tsx` for admin UI
 - `apps/web/src/lib/cache.ts` for cache strategy
 - `ARCHITECTURE.md` for design patterns

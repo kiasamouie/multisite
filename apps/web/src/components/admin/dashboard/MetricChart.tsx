@@ -1,33 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/card";
+import { Skeleton } from "@repo/ui/skeleton";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  CartesianGrid,
+  XAxis,
+  YAxis,
   Tooltip,
-  Legend,
-  Filler,
-  type ChartData,
-  type ChartOptions,
-} from "chart.js";
-import { Line, Bar, Pie } from "react-chartjs-2";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-  Filler
-);
+} from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,17 +31,11 @@ export type ChartMetric = "growth" | "plans" | "storage" | "activity";
 export type ChartPeriod = "week" | "month" | "year";
 
 export interface MetricChartProps {
-  /** Visual chart type */
   type: ChartType;
-  /** Which data metric to load */
   metric: ChartMetric;
-  /** Scope to a specific tenant; omit for platform-wide view */
   tenantId?: number;
-  /** Time window for time-series metrics */
   period?: ChartPeriod;
-  /** Override the default chart title */
   title?: string;
-  /** Height in pixels (default 220) */
   height?: number;
 }
 
@@ -55,8 +44,6 @@ interface ChartPayload {
   datasets: { label: string; data: number[] }[];
 }
 
-// ─── Default titles ───────────────────────────────────────────────────────────
-
 const DEFAULT_TITLES: Record<ChartMetric, string> = {
   growth: "Growth Over Time",
   plans: "Plan Distribution",
@@ -64,123 +51,13 @@ const DEFAULT_TITLES: Record<ChartMetric, string> = {
   activity: "Activity by Event Type",
 };
 
-// ─── Colour palettes ──────────────────────────────────────────────────────────
-
-const LINE_COLORS = [
-  { border: "rgb(99,102,241)", bg: "rgba(99,102,241,0.15)" },
-  { border: "rgb(34,197,94)", bg: "rgba(34,197,94,0.15)" },
+const COLORS = [
+  "hsl(var(--chart-1, 221 83% 53%))",
+  "hsl(var(--chart-2, 142 71% 45%))",
+  "hsl(var(--chart-3, 47 96% 53%))",
+  "hsl(var(--chart-4, 0 72% 51%))",
+  "hsl(var(--chart-5, 262 83% 58%))",
 ];
-
-const BAR_COLORS = [
-  "rgba(99,102,241,0.7)",
-  "rgba(34,197,94,0.7)",
-  "rgba(251,191,36,0.7)",
-  "rgba(239,68,68,0.7)",
-  "rgba(14,165,233,0.7)",
-  "rgba(168,85,247,0.7)",
-  "rgba(249,115,22,0.7)",
-  "rgba(20,184,166,0.7)",
-];
-
-const PIE_COLORS = [
-  "rgba(99,102,241,0.8)",
-  "rgba(34,197,94,0.8)",
-  "rgba(251,191,36,0.8)",
-  "rgba(239,68,68,0.8)",
-];
-
-// ─── Chart-specific option presets ───────────────────────────────────────────
-
-const BASE_OPTIONS: ChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      labels: { color: "rgb(148,163,184)", font: { size: 12 } },
-    },
-    tooltip: {
-      backgroundColor: "rgba(15,23,42,0.9)",
-      titleColor: "rgb(226,232,240)",
-      bodyColor: "rgb(148,163,184)",
-      borderColor: "rgba(255,255,255,0.08)",
-      borderWidth: 1,
-    },
-  },
-};
-
-const LINE_OPTIONS: ChartOptions<"line"> = {
-  ...(BASE_OPTIONS as ChartOptions<"line">),
-  scales: {
-    x: {
-      ticks: { color: "rgb(100,116,139)", maxTicksLimit: 8, font: { size: 11 } },
-      grid: { color: "rgba(255,255,255,0.04)" },
-    },
-    y: {
-      ticks: { color: "rgb(100,116,139)", font: { size: 11 } },
-      grid: { color: "rgba(255,255,255,0.04)" },
-      beginAtZero: true,
-    },
-  },
-};
-
-const BAR_OPTIONS: ChartOptions<"bar"> = {
-  ...(BASE_OPTIONS as ChartOptions<"bar">),
-  scales: {
-    x: {
-      ticks: { color: "rgb(100,116,139)", font: { size: 11 } },
-      grid: { color: "transparent" },
-    },
-    y: {
-      ticks: { color: "rgb(100,116,139)", font: { size: 11 } },
-      grid: { color: "rgba(255,255,255,0.04)" },
-      beginAtZero: true,
-    },
-  },
-};
-
-// ─── Transform raw payload into Chart.js dataset ──────────────────────────────
-
-function buildChartData(type: ChartType, payload: ChartPayload): ChartData<typeof type> {
-  if (type === "line") {
-    return {
-      labels: payload.labels,
-      datasets: payload.datasets.map((ds, i) => ({
-        label: ds.label,
-        data: ds.data,
-        borderColor: LINE_COLORS[i % LINE_COLORS.length]!.border,
-        backgroundColor: LINE_COLORS[i % LINE_COLORS.length]!.bg,
-        borderWidth: 2,
-        pointRadius: 3,
-        tension: 0.4,
-        fill: true,
-      })),
-    } as ChartData<"line">;
-  }
-
-  if (type === "bar") {
-    return {
-      labels: payload.labels,
-      datasets: payload.datasets.map((ds) => ({
-        label: ds.label,
-        data: ds.data,
-        backgroundColor: ds.data.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]!),
-        borderRadius: 4,
-      })),
-    } as ChartData<"bar">;
-  }
-
-  // pie
-  return {
-    labels: payload.labels,
-    datasets: payload.datasets.map((ds) => ({
-      label: ds.label,
-      data: ds.data,
-      backgroundColor: PIE_COLORS,
-      borderColor: "rgba(15,23,42,0.6)",
-      borderWidth: 2,
-    })),
-  } as ChartData<"pie">;
-}
 
 // ─── MetricChart ──────────────────────────────────────────────────────────────
 
@@ -195,8 +72,6 @@ export function MetricChart({
   const [payload, setPayload] = useState<ChartPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Re-key chart instance when data changes to prevent Canvas reuse issues
-  const keyRef = useRef(0);
 
   useEffect(() => {
     setLoading(true);
@@ -205,59 +80,150 @@ export function MetricChart({
     if (tenantId != null) params.set("tenantId", String(tenantId));
 
     fetch(`/api/admin/metrics/chart?${params}`)
-      .then((r) => (r.ok ? r.json() : r.json().then((e: { error?: string }) => Promise.reject(e.error ?? "Failed"))))
+      .then((r) =>
+        r.ok
+          ? r.json()
+          : r.json().then((e: { error?: string }) => Promise.reject(e.error ?? "Failed"))
+      )
       .then((d: ChartPayload) => {
-        keyRef.current += 1;
         setPayload(d);
         setLoading(false);
       })
-      .catch((e: unknown) => { setError(String(e)); setLoading(false); });
+      .catch((e: unknown) => {
+        setError(String(e));
+        setLoading(false);
+      });
   }, [metric, tenantId, period]);
 
   const chartTitle = title ?? DEFAULT_TITLES[metric];
-  const chartData = payload ? buildChartData(type, payload) : null;
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-4 w-32" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="w-full" style={{ height }} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardDescription>{chartTitle}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-destructive">{error}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!payload) return null;
+
+  // Transform payload into recharts-friendly data
+  const rechartsData = payload.labels.map((label, i) => {
+    const point: Record<string, string | number> = { name: label };
+    payload.datasets.forEach((ds) => {
+      point[ds.label] = ds.data[i] ?? 0;
+    });
+    return point;
+  });
+
+  const datasetKeys = payload.datasets.map((ds) => ds.label);
 
   return (
-    <div className="rounded-xl border border-white/5 bg-[hsl(var(--admin-surface))] p-5">
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-slate-400">{chartTitle}</h3>
-
-      {loading && (
-        <div className="flex items-center justify-center" style={{ height }}>
-          <span className="text-sm text-slate-500">Loading…</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && chartData && (
-        <div style={{ height }}>
-          {type === "line" && (
-            <Line
-              key={keyRef.current}
-              data={chartData as ChartData<"line">}
-              options={LINE_OPTIONS}
-            />
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{chartTitle}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={height}>
+          {type === "line" || type === "bar" ? (
+            type === "line" ? (
+              <AreaChart data={rechartsData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "0.5rem",
+                    border: "1px solid hsl(var(--border))",
+                    background: "hsl(var(--popover))",
+                    color: "hsl(var(--popover-foreground))",
+                  }}
+                />
+                {datasetKeys.map((key, idx) => (
+                  <Area
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stroke={COLORS[idx % COLORS.length]}
+                    fill={COLORS[idx % COLORS.length]}
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                  />
+                ))}
+              </AreaChart>
+            ) : (
+              <BarChart data={rechartsData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "0.5rem",
+                    border: "1px solid hsl(var(--border))",
+                    background: "hsl(var(--popover))",
+                    color: "hsl(var(--popover-foreground))",
+                  }}
+                />
+                {datasetKeys.map((key, idx) => (
+                  <Bar
+                    key={key}
+                    dataKey={key}
+                    fill={COLORS[idx % COLORS.length]}
+                    radius={[4, 4, 0, 0]}
+                  />
+                ))}
+              </BarChart>
+            )
+          ) : (
+            <PieChart>
+              <Pie
+                data={rechartsData.map((d, i) => ({
+                  name: d.name,
+                  value: Number(d[datasetKeys[0] ?? ""] ?? 0),
+                  fill: COLORS[i % COLORS.length],
+                }))}
+                cx="50%"
+                cy="50%"
+                outerRadius={height / 3}
+                dataKey="value"
+                label={({ name, percent }: { name: string; percent: number }) =>
+                  `${name} ${(percent * 100).toFixed(0)}%`
+                }
+              >
+                {rechartsData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "0.5rem",
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--popover))",
+                  color: "hsl(var(--popover-foreground))",
+                }}
+              />
+            </PieChart>
           )}
-          {type === "bar" && (
-            <Bar
-              key={keyRef.current}
-              data={chartData as ChartData<"bar">}
-              options={BAR_OPTIONS}
-            />
-          )}
-          {type === "pie" && (
-            <Pie
-              key={keyRef.current}
-              data={chartData as ChartData<"pie">}
-              options={BASE_OPTIONS as ChartOptions<"pie">}
-            />
-          )}
-        </div>
-      )}
-    </div>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   );
 }

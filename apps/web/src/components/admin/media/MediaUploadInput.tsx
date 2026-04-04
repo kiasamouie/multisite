@@ -2,6 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTenantAdmin } from "../tenants";
+import { Button } from "@repo/ui/button";
+import { Label } from "@repo/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/select";
+import { ScrollArea } from "@repo/ui/scroll-area";
+import { cn } from "@repo/ui/cn";
 
 interface PageOption {
   id: number;
@@ -177,102 +188,100 @@ export function MediaUploadInput({ onUploadComplete, onError }: MediaUploadInput
 
       {/* Tenant Selector — super admin only */}
       {isSuper && (
-        <div className="w-full">
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-            Target Tenant
-          </label>
+        <div className="w-full space-y-1">
+          <Label className="text-xs font-medium">Target Tenant</Label>
           {loadingTenants ? (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Loading tenants...</p>
+            <p className="text-xs text-muted-foreground">Loading tenants...</p>
           ) : (
-            <select
-              value={selectedTenantId ?? ""}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSelectedTenantId(val ? Number(val) : null);
-              }}
+            <Select
+              value={selectedTenantId != null ? String(selectedTenantId) : ""}
+              onValueChange={(val) => setSelectedTenantId(val ? Number(val) : null)}
               disabled={uploading}
-              className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             >
-              <option value="">— Select a tenant —</option>
-              {tenants.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.domain})
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="— Select a tenant —" />
+              </SelectTrigger>
+              <SelectContent>
+                {tenants.map((t) => (
+                  <SelectItem key={t.id} value={String(t.id)}>
+                    {t.name} ({t.domain})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
       )}
 
       {/* Page Association (Optional) */}
-      <div className="w-full rounded border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/30 sm:p-4">
-        <h4 className="mb-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+      <div className="w-full rounded-md border border-border bg-muted/30 p-3 sm:p-4">
+        <h4 className="mb-3 text-sm font-medium text-foreground">
           Associate with Pages (Optional)
         </h4>
 
         <div className="w-full space-y-3">
           {/* Usage Type Selector */}
-          <div className="w-full">
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Usage Type
-            </label>
-            <select
+          <div className="w-full space-y-1">
+            <Label className="text-xs font-medium">Usage Type</Label>
+            <Select
               value={usageType}
-              onChange={(e) => {
-                setUsageType(e.target.value);
-                if (e.target.value !== "pages") setSelectedPages([]);
+              onValueChange={(val) => {
+                setUsageType(val);
+                if (val !== "pages") setSelectedPages([]);
               }}
               disabled={uploading}
-              className="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             >
-              <option value="general">General</option>
-              <option value="hero">Hero Image</option>
-              <option value="thumbnail">Thumbnail</option>
-              <option value="gallery">Gallery</option>
-              <option value="background">Background</option>
-              <option value="icon">Icon</option>
-              <option value="pages">Pages</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">General</SelectItem>
+                <SelectItem value="hero">Hero Image</SelectItem>
+                <SelectItem value="thumbnail">Thumbnail</SelectItem>
+                <SelectItem value="gallery">Gallery</SelectItem>
+                <SelectItem value="background">Background</SelectItem>
+                <SelectItem value="icon">Icon</SelectItem>
+                <SelectItem value="pages">Pages</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Pages List — only shown when usage type is "pages" */}
           {usageType === "pages" && (
-            <div className="w-full">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-                Select Pages
-              </label>
+            <div className="w-full space-y-1">
+              <Label className="text-xs font-medium">Select Pages</Label>
               {isSuper && !selectedTenantId ? (
-                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Select a tenant above to see its pages.</p>
+                <p className="pt-1 text-xs text-muted-foreground">Select a tenant above to see its pages.</p>
               ) : loadingPages ? (
-                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Loading pages...</p>
+                <p className="pt-1 text-xs text-muted-foreground">Loading pages...</p>
               ) : pages.length === 0 ? (
-                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                <p className="pt-1 text-xs text-muted-foreground">
                   No pages available. Create a page first.
                 </p>
               ) : (
-                <div className="mt-2 flex max-h-40 w-full flex-col overflow-y-auto rounded border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800">
+                <ScrollArea className="mt-1 h-40 w-full rounded-md border border-border bg-background">
                   {pages.map((page) => (
                     <label
                       key={page.id}
-                      className="flex cursor-pointer items-center gap-2 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
+                      className="flex cursor-pointer items-center gap-2 border-b border-border px-2 py-2 last:border-b-0 hover:bg-accent"
                     >
                       <input
                         type="checkbox"
                         checked={selectedPages.includes(page.id)}
                         onChange={() => togglePageSelection(page.id)}
                         disabled={uploading}
-                        className="rounded"
+                        className="h-4 w-4 shrink-0 rounded border-border accent-primary disabled:opacity-50"
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm text-gray-900 dark:text-gray-100">{page.title}</div>
-                        <div className="truncate text-xs text-gray-500 dark:text-gray-400">/{page.slug}</div>
+                        <div className="truncate text-sm text-foreground">{page.title}</div>
+                        <div className="truncate text-xs text-muted-foreground">/{page.slug}</div>
                       </div>
                     </label>
                   ))}
-                </div>
+                </ScrollArea>
               )}
               {selectedPages.length > 0 && (
-                <p className="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                <p className="text-xs text-primary">
                   {selectedPages.length} page{selectedPages.length !== 1 ? "s" : ""} selected
                 </p>
               )}
@@ -280,19 +289,21 @@ export function MediaUploadInput({ onUploadComplete, onError }: MediaUploadInput
           )}
         </div>
       </div>
+
       {/* Upload Zone */}
       <div
         onDragEnter={handleDragEvents}
         onDragLeave={handleDragEvents}
         onDragOver={handleDragEvents}
         onDrop={handleDrop}
-        className={`w-full rounded border-2 border-dashed p-4 text-center transition sm:p-6 ${
+        className={cn(
+          "w-full rounded-md border-2 border-dashed p-4 text-center transition sm:p-6",
           dragActive
-            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+            ? "border-primary bg-primary/5"
             : pendingFiles.length > 0
-            ? "border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-900/20"
-            : "border-gray-300 dark:border-gray-600"
-        }`}
+            ? "border-green-500 bg-green-500/5"
+            : "border-border"
+        )}
       >
         <input
           ref={inputRef}
@@ -304,54 +315,56 @@ export function MediaUploadInput({ onUploadComplete, onError }: MediaUploadInput
         />
         {pendingFiles.length > 0 ? (
           <div className="space-y-2">
-            <div className="max-h-40 w-full overflow-y-auto rounded border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800">
+            <ScrollArea className="h-40 w-full rounded-md border border-border bg-background">
               {pendingFiles.map((file, index) => (
                 <div
                   key={`${file.name}-${index}`}
-                  className="flex items-center justify-between gap-2 border-b border-gray-100 px-3 py-2 last:border-b-0 dark:border-gray-700"
+                  className="flex items-center justify-between gap-2 border-b border-border px-3 py-2 last:border-b-0"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {file.name}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-muted-foreground">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => removeFile(index)}
                     disabled={uploading}
-                    className="shrink-0 text-xs font-medium text-gray-400 hover:text-red-600 disabled:opacity-50 dark:text-gray-500 dark:hover:text-red-400"
+                    className="h-auto shrink-0 px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ))}
-            </div>
-            <p className="text-xs text-green-700 dark:text-green-300">
+            </ScrollArea>
+            <p className="text-xs text-green-600 dark:text-green-400">
               {pendingFiles.length} file{pendingFiles.length !== 1 ? "s" : ""} ready to upload
             </p>
           </div>
         ) : (
           <label htmlFor="media-upload" className="cursor-pointer">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <p className="text-sm font-medium text-foreground">
               Drop files or click to select
             </p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 100MB per file</p>
+            <p className="mt-1 text-xs text-muted-foreground">Max 100MB per file</p>
           </label>
         )}
       </div>
 
       {/* Submit Button */}
-      <button
+      <Button
         type="button"
         onClick={handleSubmit}
         disabled={pendingFiles.length === 0 || uploading || !effectiveTenantId}
-        className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
+        className="w-full"
       >
         {uploading ? "Uploading..." : "Upload"}
-      </button>
+      </Button>
     </div>
   );
 }

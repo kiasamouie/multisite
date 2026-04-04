@@ -2,7 +2,40 @@
 
 import { useTable, useCreate, useUpdate, useDelete } from "@refinedev/core";
 import { useState } from "react";
-import { PageHeader, CreateModal, EditModal } from "@repo/ui/admin";
+import { CreateModal, EditModal } from "@repo/ui/admin";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/table";
+import { Button } from "@repo/ui/button";
+import { Input } from "@repo/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@repo/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/select";
+import {
+  Pencil,
+  Trash2,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  SlidersHorizontal,
+  Settings2,
+  X,
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+} from "lucide-react";
 
 import type { ResourceProps } from "./types";
 import { SkeletonRows } from "./SkeletonRows";
@@ -16,24 +49,6 @@ import { SidePanel } from "./SidePanel";
  * Encapsulates all Refine data hooks (useTable, useCreate, useUpdate,
  * useDelete) so individual pages contain zero hook boilerplate. Configure
  * everything via props: columns, fields, and feature flags.
- *
- * @example
- *   <Resource
- *     resource="tenants"
- *     title="Tenants"
- *     columns={[
- *       { key: "name",         label: "Name" },
- *       { key: "plan",         label: "Plan",    render: PlanBadgeCell },
- *       { key: "admin_enabled",label: "Status",  render: StatusCell },
- *       { key: "created_at",   label: "Created", render: DateCell },
- *     ]}
- *     createFields={[
- *       { key: "name", label: "Name", type: "text", required: true },
- *     ]}
- *     defaultValues={{ name: "" }}
- *     searchField="name"
- *     canSort
- *   />
  */
 export function Resource<T extends Record<string, unknown>>({
   resource,
@@ -73,8 +88,8 @@ export function Resource<T extends Record<string, unknown>>({
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  // Tracks the PK of each joined row for the row currently being edited.
-  // Key = JoinDef.resource, value = the join row's PK (or undefined if no row exists yet).
+  const [runtimePageSize, setRuntimePageSize] = useState(pageSize);
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
   const [joinRowIds, setJoinRowIds] = useState<Record<string, unknown>>({});
 
   // ── Refine hooks ──────────────────────────────────────────────────────────
@@ -83,12 +98,14 @@ export function Resource<T extends Record<string, unknown>>({
     setFilters,
     currentPage,
     setCurrentPage,
+    pageSize: _activePageSize,
+    setPageSize: setActivePageSize,
     pageCount,
     sorters,
     setSorters,
   } = useTable<T>({
     resource,
-    pagination: { pageSize },
+    pagination: { pageSize: runtimePageSize },
     syncWithLocation,
     meta: select ? { select } : undefined,
     filters: filters ? { initial: filters } : undefined,
@@ -99,10 +116,6 @@ export function Resource<T extends Record<string, unknown>>({
   const { mutate: deleteRecord } = useDelete();
 
   // ── Join helpers ──────────────────────────────────────────────────────────
-  /**
-   * Splits formData into a main-table payload and per-joined-table payloads.
-   * Fields with `joinResource` are grouped by that resource; all others go to main.
-   */
   const splitFormData = (fields: typeof createFields) => {
     const main: Record<string, unknown> = {};
     const joinGroups: Record<string, Record<string, unknown>> = {};
@@ -120,11 +133,12 @@ export function Resource<T extends Record<string, unknown>>({
   // ── Derived values ────────────────────────────────────────────────────────
   const rows = (tableQuery.data?.data ?? []) as T[];
   const total = tableQuery.data?.total ?? 0;
-  const totalPages = pageCount || Math.ceil(total / pageSize) || 1;
+  const totalPages = pageCount || Math.ceil(total / runtimePageSize) || 1;
   const activeEditFields = editFields ?? createFields;
   const showActionsCol =
     (canEdit && activeEditFields.length > 0) || canDelete || !!rowActions || !!sidePanel;
-  const colCount = columns.length + (showActionsCol ? 1 : 0);
+  const visibleColumns = columns.filter((col) => columnVisibility[col.key] !== false);
+  const colCount = visibleColumns.length + (showActionsCol ? 1 : 0);
   const computedSubtitle = subtitle ?? `${total} record${total === 1 ? "" : "s"}`;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -151,12 +165,19 @@ export function Resource<T extends Record<string, unknown>>({
     }
   };
 
-  const sortIndicator = (key: string) => {
+  const handlePageSizeChange = (value: string) => {
+    const newSize = Number(value);
+    setRuntimePageSize(newSize);
+    setActivePageSize(newSize);
+    setCurrentPage(1);
+  };
+
+  const sortIcon = (key: string) => {
     const s = sorters.find((s) => s.field === key);
-    if (!s) return <span className="ml-1 opacity-30">↕</span>;
-    return (
-      <span className="ml-1 text-blue-600">{s.order === "asc" ? "↑" : "↓"}</span>
-    );
+    if (!s) return <ChevronsUpDown className="h-4 w-4" />;
+    return s.order === "asc"
+      ? <ArrowUp className="h-4 w-4" />
+      : <ArrowDown className="h-4 w-4" />;
   };
 
   const handleCreateOpen = () => {
@@ -201,13 +222,11 @@ export function Resource<T extends Record<string, unknown>>({
     const newJoinRowIds: Record<string, unknown> = {};
     for (const field of fields) {
       if (field.joinResource) {
-        // Extract value from the nested joined data on the row
         const jd = joins?.find((j) => j.resource === field.joinResource);
         if (jd) {
           const raw = row[jd.resource];
           const joinData = (Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown> | undefined;
           initial[field.key] = joinData?.[field.key];
-          // Track this join row's PK so we can update vs insert on submit
           newJoinRowIds[jd.resource] = joinData?.[jd.idKey ?? "id"];
         }
       } else {
@@ -288,41 +307,93 @@ export function Resource<T extends Record<string, unknown>>({
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-4 p-8">
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-4">
-        {title && <PageHeader title={title} subtitle={computedSubtitle} />}
-        <div className="flex shrink-0 items-center gap-2">
-          {canExport && (
-            <button
-              disabled
-              title="Export coming soon"
-              className="rounded-lg border border-input px-4 py-2 text-sm text-muted-foreground opacity-50"
-            >
-              Export CSV
-            </button>
+    <div className="flex flex-col gap-4">
+      {/* Header */}
+      {title && (
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+          {computedSubtitle && (
+            <p className="text-muted-foreground">{computedSubtitle}</p>
           )}
-          {canCreate && createFields.length > 0 && (
-            <button
-              onClick={handleCreateOpen}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        </div>
+      )}
+
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-1 items-center gap-2">
+          {canSearch && searchField && (
+            <Input
+              placeholder={searchPlaceholder ?? `Filter ${title ?? resource}…`}
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="h-8 w-[150px] lg:w-[250px]"
+            />
+          )}
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 lg:px-3"
+              onClick={() => handleSearch("")}
             >
+              Reset
+              <X className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {canRefresh && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => tableQuery.refetch()}
+              disabled={tableQuery.isFetching}
+              title="Refresh"
+            >
+              <RefreshCw className={`h-4 w-4 ${tableQuery.isFetching ? "animate-spin" : ""}`} />
+            </Button>
+          )}
+          {canExport && (
+            <Button variant="outline" size="sm" className="h-8" disabled>
+              Export
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto hidden h-8 lg:flex"
+              >
+                <Settings2 className="mr-2 h-4 w-4" />
+                View
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[150px]">
+              <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {columns.map((col) => (
+                <DropdownMenuCheckboxItem
+                  key={col.key}
+                  className="capitalize"
+                  checked={columnVisibility[col.key] !== false}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, [col.key]: !!checked }))
+                  }
+                >
+                  {col.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {canCreate && createFields.length > 0 && (
+            <Button size="sm" className="h-8" onClick={handleCreateOpen}>
               {createLabel}
-            </button>
+            </Button>
           )}
         </div>
       </div>
-
-      {/* Search */}
-      {canSearch && searchField && (
-        <input
-          type="text"
-          placeholder={searchPlaceholder ?? `Search ${title ?? resource}…`}
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      )}
 
       {/* Error banner */}
       {tableQuery.isError && (
@@ -333,146 +404,175 @@ export function Resource<T extends Record<string, unknown>>({
       )}
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/50">
-              <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`px-4 py-3 text-left font-medium ${
-                      canSort && col.sortable
-                        ? "cursor-pointer select-none hover:text-foreground"
-                        : ""
-                    }`}
-                    style={col.width ? { width: col.width } : undefined}
-                    onClick={() => canSort && col.sortable && handleSort(col.key)}
-                  >
-                    {col.label}
-                    {canSort && col.sortable && sortIndicator(col.key)}
-                  </th>
-                ))}
-                {(showActionsCol || canRefresh) && (
-                  <th className="px-4 py-3 text-right font-medium">
-                    <div className="flex items-center justify-end gap-2">
-                      {showActionsCol && "Actions"}
-                      {canRefresh && (
-                        <button
-                          onClick={() => tableQuery.refetch()}
-                          disabled={tableQuery.isFetching}
-                          title="Refresh"
-                          className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
-                        >
-                          <span className={`material-symbols-outlined text-[16px] ${tableQuery.isFetching ? "animate-spin" : ""}`}>
-                            refresh
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {tableQuery.isLoading ? (
-                <SkeletonRows cols={colCount} rows={Math.min(pageSize, 5)} />
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={colCount}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    No records found
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row) => (
-                  <tr
-                    key={String(row.id)}
-                    className="border-b last:border-0 hover:bg-muted/50"
-                  >
-                    {columns.map((col) => (
-                      <td key={col.key} className="px-4 py-3">
-                        {col.render
-                          ? col.render(row[col.key], row)
-                          : String(row[col.key] ?? "")}
-                      </td>
-                    ))}
-                    {showActionsCol && (
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {sidePanel && (
-                            <button
-                              onClick={() => setSidePanelRow(row)}
-                              title={sidePanel.title}
-                              className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">
-                                {sidePanel.icon ?? "open_in_new"}
-                              </span>
-                            </button>
-                          )}
-                          {canEdit && activeEditFields.length > 0 && (
-                            <button
-                              onClick={() => handleEditClick(row)}
-                              title="Edit"
-                              className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">edit</span>
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              onClick={() => setDeleteTarget(row)}
-                              title="Delete"
-                              className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                          )}
-                          {rowActions?.(row)}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {visibleColumns.map((col) => (
+                <TableHead
+                  key={col.key}
+                  style={col.width ? { width: col.width } : undefined}
+                >
+                  {canSort && col.sortable ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="-ml-3 h-8 data-[state=open]:bg-accent"
+                      onClick={() => handleSort(col.key)}
+                    >
+                      <span>{col.label}</span>
+                      {sortIcon(col.key)}
+                    </Button>
+                  ) : (
+                    col.label
+                  )}
+                </TableHead>
+              ))}
+              {showActionsCol && <TableHead className="w-[120px] text-right">Actions</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tableQuery.isLoading ? (
+              <SkeletonRows cols={colCount} rows={Math.min(runtimePageSize, 5)} />
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={colCount}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row) => (
+                <TableRow key={String(row.id)}>
+                  {visibleColumns.map((col) => (
+                    <TableCell key={col.key}>
+                      {col.render
+                        ? col.render(row[col.key], row)
+                        : String(row[col.key] ?? "")}
+                    </TableCell>
+                  ))}
+                  {showActionsCol && (
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {sidePanel && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidePanelRow(row)}
+                            title={sidePanel.title}
+                          >
+                            {sidePanel.icon
+                              ? <sidePanel.icon className="h-4 w-4" />
+                              : <SlidersHorizontal className="h-4 w-4" />}
+                          </Button>
+                        )}
+                        {rowActions?.(row)}
+                        {canEdit && activeEditFields.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditClick(row)}
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(row)}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-        {/* Pagination footer */}
-        <div className="flex items-center justify-between border-t bg-muted/50 px-4 py-3 text-sm">
-          <span className="text-muted-foreground">
-            {rows.length === 0
-              ? "No records"
-              : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(
-                  currentPage * pageSize,
-                  total,
-                )} of ${total}`}
-          </span>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-                className="rounded border border-input px-2 py-1 text-xs hover:bg-muted disabled:opacity-40"
-              >
-                Prev
-              </button>
-              <span className="text-muted-foreground">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-                className="rounded border border-input px-2 py-1 text-xs hover:bg-muted disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
-          )}
+      {/* Pagination */}
+      <div className="flex items-center justify-between px-2">
+        <div className="flex-1 text-sm text-muted-foreground">
+          {rows.length === 0
+            ? "No records"
+            : `${total} row${total === 1 ? "" : "s"} total.`}
+        </div>
+        <div className="flex items-center space-x-6 lg:space-x-8">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium">Rows per page</p>
+            <Select
+              value={`${runtimePageSize}`}
+              onValueChange={handlePageSizeChange}
+            >
+              <SelectTrigger className="h-8 w-[70px]">
+                <SelectValue placeholder={`${runtimePageSize}`} />
+              </SelectTrigger>
+              <SelectContent side="top">
+                {[10, 20, 30, 50].map((size) => (
+                  <SelectItem key={size} value={`${size}`}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+            Page {currentPage} of {totalPages}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="hidden h-8 w-8 lg:flex"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+            >
+              <span className="sr-only">Go to first page</span>
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <span className="sr-only">Go to previous page</span>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+            >
+              <span className="sr-only">Go to next page</span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="hidden h-8 w-8 lg:flex"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage >= totalPages}
+            >
+              <span className="sr-only">Go to last page</span>
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

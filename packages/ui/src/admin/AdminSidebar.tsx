@@ -1,10 +1,11 @@
 // Backward compatibility re-export
 import { Shell } from "./layout/Shell";
-export type { NavItem } from "./layout/Sidebar";
+export type { NavItem } from "@repo/lib/config/dashboardConfig";
+import type { NavItem } from "@repo/lib/config/dashboardConfig";
 
 interface AdminSidebarProps {
-  navItems: any[];
-  bottomNavItems?: any[];
+  navItems: NavItem[];
+  bottomNavItems?: NavItem[];
   header: { title: string; subtitle?: string; initial?: string };
   userEmail: string;
   userName?: string;
@@ -41,7 +42,8 @@ export function AdminSidebar({
       newItemHref={newItemHref}
       siteUrl={siteUrl}
       isSuperAdmin={isSuperAdmin}
-      children={children}
-    />
+    >
+      {children}
+    </Shell>
   );
 }

@@ -2,10 +2,10 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { Sun, Moon, Monitor } from "lucide-react";
 
 /**
  * Cycles through system → light → dark.
- * Uses Material Symbols icons to match the admin panel aesthetic.
  */
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
@@ -21,7 +21,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     else setTheme("system");
   };
 
-  const icon = theme === "light" ? "light_mode" : theme === "dark" ? "dark_mode" : "brightness_auto";
+  const Icon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
   const title = theme === "light" ? "Light mode (click for dark)" : theme === "dark" ? "Dark mode (click for system)" : "System theme (click for light)";
 
   return (
@@ -30,7 +30,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={title}
       className={`flex h-9 w-9 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/5 hover:text-foreground ${className ?? ""}`}
     >
-      <span className="material-symbols-outlined text-[20px]">{icon}</span>
+      <Icon className="h-5 w-5" />
     </button>
   );
 }

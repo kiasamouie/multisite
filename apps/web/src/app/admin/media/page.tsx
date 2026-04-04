@@ -3,6 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTenantAdmin, Resource, DateCell, MediaUploadInput, buildUrl } from "@/components/admin";
+import { Download, Copy, Trash2, FileText, ExternalLink, FileAudio, FileVideo, File, Info, Edit2 } from "lucide-react";
+import { Badge } from "@repo/ui/badge";
+import { Button } from "@repo/ui/button";
+import { Input } from "@repo/ui/input";
+import { MediaEditAssociations } from "@/components/admin/media";
 
 interface MediaRecord extends Record<string, unknown> {
   id: number;
@@ -40,6 +45,7 @@ function MediaDetailsPanel({ media }: { media: MediaRecord }) {
     usage_type: string;
     pages: { id: number; title: string; slug: string; tenants: { domain: string } | null } | null;
   }> | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     const fetchSignedUrl = async () => {
@@ -106,14 +112,12 @@ function MediaDetailsPanel({ media }: { media: MediaRecord }) {
           />
         ) : type === "audio" && signedUrl ? (
           <div className="flex flex-col items-center gap-2 p-4">
-            <span className="material-symbols-outlined text-3xl text-muted-foreground">audio_file</span>
+            <FileAudio className="h-8 w-8 text-muted-foreground" />
             <audio src={signedUrl} controls className="w-full" preload="metadata" />
           </div>
         ) : (
           <div className="flex h-32 items-center justify-center gap-2 text-muted-foreground">
-            <span className="material-symbols-outlined text-3xl">
-              {type === "video" ? "videocam" : type === "audio" ? "audio_file" : type === "document" ? "description" : "insert_drive_file"}
-            </span>
+            {type === "video" ? <FileVideo className="h-8 w-8" /> : type === "audio" ? <FileAudio className="h-8 w-8" /> : type === "document" ? <FileText className="h-8 w-8" /> : <File className="h-8 w-8" />}
             <span className="text-sm capitalize">{type}</span>
           </div>
         )}
@@ -128,7 +132,7 @@ function MediaDetailsPanel({ media }: { media: MediaRecord }) {
           download
           className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
         >
-          <span className="material-symbols-outlined text-[16px]">download</span>
+          <Download className="h-4 w-4" />
           Download file
         </a>
       )}
@@ -156,7 +160,7 @@ function MediaDetailsPanel({ media }: { media: MediaRecord }) {
               title="Copy storage path"
               className="ml-1 shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
-              <span className="material-symbols-outlined text-[14px]">content_copy</span>
+              <Copy className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
@@ -188,42 +192,72 @@ function MediaDetailsPanel({ media }: { media: MediaRecord }) {
       </div>
 
       {/* Page associations */}
-      <div>
-        <h3 className="mb-2 text-xs font-semibold text-foreground">Used on Pages</h3>
-        {associations === null ? (
-          <p className="text-xs text-muted-foreground">Loading…</p>
-        ) : associations.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Not used on any pages.</p>
-        ) : (
-          <div className="divide-y divide-border rounded-lg border border-border">
-            {associations.map((assoc) => {
-              const page = assoc.pages;
-              if (!page) return null;
-              const domain = page.tenants?.domain;
-              const href = domain
-                ? buildUrl(domain, `/${page.slug}`)
-                : `/${page.slug}`;
-              const label = domain ? `${domain}/${page.slug}` : `/${page.slug}`;
-              return (
-                <a
-                  key={assoc.id}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[16px] shrink-0 text-muted-foreground">article</span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block truncate text-xs font-medium">{page.title}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{label}</span>
-                  </span>
-                  <span className="material-symbols-outlined text-[14px] shrink-0 text-muted-foreground">open_in_new</span>
-                </a>
-              );
-            })}
+      {editMode ? (
+        <MediaEditAssociations
+          mediaId={media.id}
+          tenantId={media.tenant_id}
+          isSuper={isSuper}
+          onCancel={() => setEditMode(false)}
+          onSave={() => {
+            // Refresh associations after save
+            fetch(`/api/admin/media/${media.id}/associations`)
+              .then((res) => res.json())
+              .then((data) => setAssociations(data))
+              .catch((err) => console.error("Failed to refresh associations:", err));
+          }}
+        />
+      ) : (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-xs font-semibold text-foreground">Used on Pages</h3>
+            <Button
+              onClick={() => setEditMode(true)}
+              size="sm"
+              variant="outline"
+              className="h-6"
+            >
+              <Edit2 className="mr-1.5 h-3.5 w-3.5" />
+              Edit
+            </Button>
           </div>
-        )}
-      </div>
+          {associations === null ? (
+            <p className="text-xs text-muted-foreground">Loading…</p>
+          ) : associations.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Not used on any pages.</p>
+          ) : (
+            <div className="divide-y divide-border rounded-lg border border-border">
+              {associations.map((assoc) => {
+                const page = assoc.pages;
+                if (!page) return null;
+                const domain = page.tenants?.domain;
+                const href = domain
+                  ? buildUrl(domain, `/${page.slug}`)
+                  : `/${page.slug}`;
+                const label = domain ? `${domain}/${page.slug}` : `/${page.slug}`;
+                return (
+                  <a
+                    key={assoc.id}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors"
+                  >
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate text-xs font-medium">{page.title}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{label}</span>
+                    </span>
+                    <Badge variant="secondary" className="shrink-0">
+                      {assoc.usage_type}
+                    </Badge>
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -289,18 +323,7 @@ export default function MediaPage() {
                   render: (value, row: Record<string, unknown>) => {
                     const metadata = row.metadata as Record<string, unknown> | undefined;
                     const type = metadata?.type ? String(metadata.type) : "unknown";
-                    const typeColor: Record<string, string> = {
-                      image: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-                      video: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-                      audio: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-                      document: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-                      unknown: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
-                    };
-                    return (
-                      <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${typeColor[type] || typeColor.unknown}`}>
-                        {type}
-                      </span>
-                    );
+                    return <Badge variant="outline" className="capitalize">{type}</Badge>;
                   },
                 },
                 {
@@ -348,18 +371,7 @@ export default function MediaPage() {
                   render: (value, row: Record<string, unknown>) => {
                     const metadata = row.metadata as Record<string, unknown> | undefined;
                     const type = metadata?.type ? String(metadata.type) : "unknown";
-                    const typeColor: Record<string, string> = {
-                      image: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-                      video: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-                      audio: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-                      document: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-                      unknown: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
-                    };
-                    return (
-                      <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${typeColor[type] || typeColor.unknown}`}>
-                        {type}
-                      </span>
-                    );
+                    return <Badge variant="outline" className="capitalize">{type}</Badge>;
                   },
                 },
                 {
@@ -392,7 +404,7 @@ export default function MediaPage() {
               ]
         }
         sidePanel={{
-          icon: "info",
+          icon: Info,
           title: "Media Details",
           view: (row) => <MediaDetailsPanel media={row as MediaRecord} />,
           width: "md",

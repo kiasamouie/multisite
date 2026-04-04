@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, ComponentType } from "react";
 import type { CrudFilter } from "@refinedev/core";
 import type { SidePanelWidth } from "./SidePanel";
 
@@ -151,8 +151,8 @@ export interface ResourceProps<T = Record<string, unknown>> {
    *   }}
    */
   sidePanel?: {
-    /** material-symbols icon name. Default: "open_in_new" */
-    icon?: string;
+    /** Lucide icon component for the row action button */
+    icon?: ComponentType<{ className?: string }>;
     /** Tooltip on the row button + SidePanel header */
     title: string;
     /** SidePanel sub-header. Receives the active row for dynamic text. */

@@ -1,6 +1,14 @@
 import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../../components/ui/breadcrumb";
 
-export interface Breadcrumb {
+export interface BreadcrumbItem_ {
   label: string;
   href?: string;
 }
@@ -16,71 +24,80 @@ export interface StatusChip {
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  breadcrumbs?: Breadcrumb[];
+  action?: React.ReactNode;
+  breadcrumbs?: BreadcrumbItem_[];
   chips?: StatusChip[];
 }
 
-export function PageHeader({ title, subtitle, breadcrumbs, chips }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  subtitle,
+  action,
+  breadcrumbs,
+  chips,
+}: PageHeaderProps) {
   return (
-    <header className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-      {/* Left */}
+    <div className="flex items-start justify-between gap-4">
       <div>
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            {breadcrumbs.map((crumb, i) => (
-              <span key={crumb.label} className="flex items-center gap-2">
-                {i > 0 && (
-                  <span className="material-symbols-outlined text-[12px]">chevron_right</span>
-                )}
-                {crumb.href ? (
-                  <Link href={crumb.href} className="transition-colors hover:text-primary">
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <span className="text-primary">{crumb.label}</span>
-                )}
-              </span>
-            ))}
-          </nav>
+          <Breadcrumb className="mb-2">
+            <BreadcrumbList>
+              {breadcrumbs.map((crumb, i) => (
+                <BreadcrumbItem key={i}>
+                  {i > 0 && <BreadcrumbSeparator />}
+                  {crumb.href ? (
+                    <BreadcrumbLink asChild>
+                      <Link href={crumb.href}>{crumb.label}</Link>
+                    </BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                  )}
+                </BreadcrumbItem>
+              ))}
+            </BreadcrumbList>
+          </Breadcrumb>
         )}
-        <h1 className="text-4xl font-extrabold leading-none tracking-tighter text-foreground">
-          {title}
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         {subtitle && (
-          <p className="mt-2 max-w-xl font-medium text-slate-400">{subtitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
         )}
       </div>
 
-      {/* Right — status chips */}
-      {chips && chips.length > 0 && (
-        <div className="flex gap-4">
-          {chips.map((chip) => (
+      <div className="flex items-center gap-4">
+        {/* Status chips (backward compat) */}
+        {chips &&
+          chips.length > 0 &&
+          chips.map((chip) => (
             <div
               key={chip.label}
-              className="glass-panel flex min-w-[180px] items-center gap-4 rounded-lg border border-[hsl(var(--admin-border))]/10 p-4"
+              className="flex min-w-[140px] items-center gap-3 rounded-lg border border-border/50 bg-muted/50 p-3"
             >
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   {chip.label}
                 </span>
                 {chip.variant === "status" ? (
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
-                    <span className="text-sm font-bold text-secondary">{chip.value}</span>
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                      {chip.value}
+                    </span>
                   </div>
                 ) : (
                   <span className="mt-1 text-xl font-extrabold text-foreground">
                     {chip.value}
                     {chip.trend && (
-                      <span className="ml-1 text-xs font-medium text-secondary">{chip.trend}</span>
+                      <span className="ml-1 text-xs font-medium text-green-600 dark:text-green-400">
+                        {chip.trend}
+                      </span>
                     )}
                   </span>
                 )}
               </div>
             </div>
           ))}
-        </div>
-      )}
-    </header>
+        {action && <div>{action}</div>}
+      </div>
+    </div>
   );
 }

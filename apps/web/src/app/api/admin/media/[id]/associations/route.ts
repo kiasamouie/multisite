@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { authenticateRequest, requireTenantMembership } from "@/lib/api-auth";
+import { ensurePageMediaBlock } from "@repo/lib/media/blocks";
 
 // GET /api/admin/media/[id]/associations — list page associations for a media item
 export async function GET(
@@ -28,7 +30,7 @@ export async function GET(
 
   const { data, error } = await auth.admin
     .from("media_page_associations")
-    .select("id, page_id, usage_type, pages(id, title, slug, tenants(domain))")
+    .select("id, page_id, usage_type, pages(id, title, slug, tenants(id, name, domain))")
     .eq("media_id", mediaId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -71,16 +73,20 @@ export async function POST(
   const access = await requireTenantMembership(auth.userId, media.tenant_id, auth.admin, auth.isPlatform);
   if (!access.allowed) return access.response!;
 
-  // Verify the page belongs to the same tenant
+  // Verify the page exists and (for non-super-admin) belongs to the same tenant as the media
   const { data: page } = await auth.admin
     .from("pages")
-    .select("id")
+    .select("id, tenant_id")
     .eq("id", page_id)
-    .eq("tenant_id", media.tenant_id)
     .single();
 
   if (!page) {
-    return NextResponse.json({ error: "Page not found or does not belong to this tenant" }, { status: 404 });
+    return NextResponse.json({ error: "Page not found" }, { status: 404 });
+  }
+
+  // Super admins can associate across tenants; others must match tenant
+  if (!auth.isPlatform && page.tenant_id !== media.tenant_id) {
+    return NextResponse.json({ error: "Page does not belong to this tenant" }, { status: 403 });
   }
 
   const { data, error } = await auth.admin
@@ -95,6 +101,10 @@ export async function POST(
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Auto-create page_media block and invalidate page cache
+  await ensurePageMediaBlock(auth.admin, page_id, usage_type);
+  revalidateTag("pages");
 
   return NextResponse.json(data, { status: 201 });
 }

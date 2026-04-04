@@ -28,10 +28,13 @@ export async function middleware(request: NextRequest) {
   const isAdminRequest = isAdminSubdomain || isAdminPath;
 
   // Skip middleware for static assets and API routes (except admin API)
+  // Also skip the media upload route — it handles auth itself and large bodies
+  // (e.g. audio files) can be lost when middleware clones the request headers.
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
-    (pathname.startsWith("/api") && !pathname.startsWith("/api/admin"))
+    (pathname.startsWith("/api") && !pathname.startsWith("/api/admin")) ||
+    pathname === "/api/admin/media/upload"
   ) {
     return NextResponse.next();
   }

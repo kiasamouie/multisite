@@ -9,7 +9,7 @@ import {
   TENANT_ADMIN_CONFIG,
 } from "@repo/lib/config/dashboardConfig";
 import { AdminSidebar } from "@repo/ui/admin/sidebar";
-import type { NavItem } from "@repo/ui/admin/sidebar";
+import type { NavItem } from "@repo/lib/config/dashboardConfig";
 import { AdminClientWrapper } from "./AdminClientWrapper";
 
 export default async function AdminLayout({
@@ -77,12 +77,7 @@ export default async function AdminLayout({
       }
 
       // Show tenant-specific dashboard for this platform admin
-      const navItems: NavItem[] = TENANT_ADMIN_CONFIG.navItems.map((item) => ({
-        label: item.label,
-        href: item.href,
-        icon: item.icon,
-        id: item.id,
-      }));
+      const navItems = TENANT_ADMIN_CONFIG.navItems;
 
       const bottomNavItems: NavItem[] = [];
 
@@ -104,12 +99,7 @@ export default async function AdminLayout({
     }
 
     // Super admin on platform domain - show global admin view
-    const navItems: NavItem[] = SUPER_ADMIN_CONFIG.navItems.map((item) => ({
-      label: item.label,
-      href: item.href,
-      icon: item.icon,
-      id: item.id,
-    }));
+    const navItems = SUPER_ADMIN_CONFIG.navItems;
 
     const bottomNavItems: NavItem[] = [];
 
@@ -119,8 +109,8 @@ export default async function AdminLayout({
           navItems={navItems}
           bottomNavItems={bottomNavItems}
           header={{
-            title: "Architect Studio",
-            subtitle: "Global Controller",
+            title: "Multisite",
+            subtitle: "Super Admin Dashboard",
             initial: "A",
           }}
           userEmail={authenticatedUser.email ?? ""}
@@ -160,12 +150,7 @@ export default async function AdminLayout({
     notFound();
   }
 
-  const navItems: NavItem[] = TENANT_ADMIN_CONFIG.navItems.map((item) => ({
-    label: item.label,
-    href: item.href,
-    icon: item.icon,
-    id: item.id,
-  }));
+  const navItems = TENANT_ADMIN_CONFIG.navItems;
 
 
   const bottomNavItems: NavItem[] = [];

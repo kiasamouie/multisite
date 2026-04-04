@@ -1,5 +1,3 @@
 export { Shell } from "./Shell";
-export type { NavItem } from "./Sidebar";
-export { Sidebar } from "./Sidebar";
 export { PageHeader } from "./PageHeader";
-export { TopBar } from "./TopBar";
+export type { NavItem } from "@repo/lib/config/dashboardConfig";

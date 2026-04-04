@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { authenticateRequest, requireTenantMembership } from "@/lib/api-auth";
 import { sectionSchema } from "@repo/lib/validation/schemas";
 
@@ -72,5 +73,6 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidateTag("pages");
   return NextResponse.json(data, { status: 201 });
 }

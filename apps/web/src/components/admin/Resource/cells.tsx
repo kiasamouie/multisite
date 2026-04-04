@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Badge } from "@repo/ui/badge";
 
 /**
  * Built-in cell renderers for common data shapes.
@@ -8,40 +9,32 @@ import type { ReactNode } from "react";
  *   { key: "created_at",    label: "Created", render: DateCell }
  */
 
-/** Green "Active" / grey "Inactive" badge based on a boolean value */
+/** Green "Active" / grey "Inactive" badge */
 export function StatusCell(value: unknown): ReactNode {
   const active = Boolean(value);
   return (
-    <span
-      className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
-        active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-      }`}
-    >
+    <Badge variant={active ? "default" : "secondary"}>
       {active ? "Active" : "Inactive"}
-    </span>
+    </Badge>
   );
 }
 
-/** Green "Enabled" / grey "Disabled" badge based on a boolean value */
+/** Green "Enabled" / grey "Disabled" badge */
 export function EnabledCell(value: unknown): ReactNode {
   const enabled = Boolean(value);
   return (
-    <span
-      className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
-        enabled ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-      }`}
-    >
+    <Badge variant={enabled ? "default" : "secondary"}>
       {enabled ? "Enabled" : "Disabled"}
-    </span>
+    </Badge>
   );
 }
 
-/** Blue pill showing a plan name (starter / growth / pro / etc.) */
+/** Blue pill showing a plan name */
 export function PlanBadgeCell(value: unknown): ReactNode {
   return (
-    <span className="inline-block rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+    <Badge variant="outline">
       {String(value ?? "")}
-    </span>
+    </Badge>
   );
 }
 
@@ -52,7 +45,7 @@ export function MutedCell(value: unknown): ReactNode {
   );
 }
 
-/** Helper: builds a properly formatted URL from domain and optional path, handling localhost port injection */
+/** Helper: builds a properly formatted URL */
 export function buildUrl(domain: string, path: string = ""): string {
   const isLocalhost = domain.includes("localhost") || domain.startsWith("127.");
   if (isLocalhost) {
@@ -62,21 +55,18 @@ export function buildUrl(domain: string, path: string = ""): string {
   return `https://${domain}${path}`;
 }
 
-/** Renders value as a clickable link that opens in a new tab */
+/** Renders value as a clickable link */
 export function LinkCell(value: unknown): ReactNode {
   const text = String(value ?? "");
   if (!text) return <span className="text-xs text-muted-foreground">—</span>;
-
-  // Auto-detect URL: if it looks like a domain, prepend protocol
   const isUrl = text.startsWith("http://") || text.startsWith("https://");
   const url = isUrl ? text : buildUrl(text);
-
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-xs text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+      className="text-xs text-primary hover:underline"
       title={`Open ${text}`}
     >
       {text}
@@ -99,18 +89,14 @@ export function DateCell(value: unknown): ReactNode {
 }
 
 /**
- * Factory: create a badge cell with a custom Tailwind colour class.
- *
- * @example
- *   const WarningBadge = makeBadgeCell("bg-yellow-100 text-yellow-800");
- *   { key: "severity", label: "Severity", render: WarningBadge }
+ * Factory: create a badge cell with a given variant.
  */
-export function makeBadgeCell(colorClass: string) {
+export function makeBadgeCell(variant: "default" | "secondary" | "destructive" | "outline" = "outline") {
   return function BadgeCell(value: unknown): ReactNode {
     return (
-      <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${colorClass}`}>
+      <Badge variant={variant}>
         {String(value ?? "")}
-      </span>
+      </Badge>
     );
   };
 }
@@ -118,8 +104,8 @@ export function makeBadgeCell(colorClass: string) {
 /** Renders a boolean as a simple Yes / No text */
 export function BooleanCell(value: unknown): ReactNode {
   return (
-    <span className={`text-xs font-medium ${value ? "text-green-700" : "text-muted-foreground"}`}>
+    <Badge variant={value ? "default" : "secondary"}>
       {value ? "Yes" : "No"}
-    </span>
+    </Badge>
   );
 }

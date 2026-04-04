@@ -57,11 +57,11 @@ export type DashboardConfig = {
 export const SUPER_ADMIN_CONFIG: DashboardConfig = {
   role: "super_admin",
   navItems: [
-    { id: "overview", label: "Overview", href: "/admin", icon: "dashboard" },
-    { id: "tenants", label: "Tenants", href: "/admin/tenants", icon: "domain" },
-    { id: "subscriptions", label: "Subscriptions", href: "/admin/subscriptions", icon: "payments" },
+    { id: "overview", label: "Overview", href: "/admin", icon: "layout-dashboard" },
+    { id: "tenants", label: "Tenants", href: "/admin/tenants", icon: "globe" },
+    { id: "subscriptions", label: "Subscriptions", href: "/admin/subscriptions", icon: "credit-card" },
     { id: "media", label: "Media", href: "/admin/media", icon: "image" },
-    { id: "pages", label: "Pages", href: "/admin/pages", icon: "article" },
+    { id: "pages", label: "Pages", href: "/admin/pages", icon: "file-text" },
   ],
   modules: [
     {
@@ -96,9 +96,9 @@ export const SUPER_ADMIN_CONFIG: DashboardConfig = {
 export const TENANT_ADMIN_CONFIG: DashboardConfig = {
   role: "tenant_admin",
   navItems: [
-    { id: "dashboard", label: "Dashboard", href: "/admin", icon: "dashboard" },
+    { id: "dashboard", label: "Dashboard", href: "/admin", icon: "layout-dashboard" },
     { id: "media", label: "Media", href: "/admin/media", icon: "image" },
-    { id: "pages", label: "Pages", href: "/admin/pages", icon: "article" },
+    { id: "pages", label: "Pages", href: "/admin/pages", icon: "file-text" },
     { id: "settings", label: "Settings", href: "/admin/settings", icon: "settings" },
   ],
   modules: [

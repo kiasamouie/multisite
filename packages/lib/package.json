@@ -25,6 +25,7 @@
     "./config/pageTemplates": "./src/config/pageTemplates.ts",
     "./config/stitchBlockMap": "./src/config/stitchBlockMap.ts",
     "./media/resolve": "./src/media/resolve.ts",
+    "./media/blocks": "./src/media/blocks.ts",
     "./domain": "./src/domain.ts",
     "./logger": "./src/logger.ts",
     "./ratelimit": "./src/ratelimit.ts"

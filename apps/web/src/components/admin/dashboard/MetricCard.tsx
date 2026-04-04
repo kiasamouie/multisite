@@ -1,39 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/card";
+import { Badge } from "@repo/ui/badge";
+import { Skeleton } from "@repo/ui/skeleton";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type CardContext = "tenants" | "subscriptions" | "members" | "content" | "activity";
 
 export interface MetricCardFeatures {
-  /** tenants context */
   showPlanBreakdown?: boolean;
   showTenantList?: boolean;
-  /** subscriptions context */
   showStatusBreakdown?: boolean;
-  /** members context */
   showRoleBreakdown?: boolean;
-  /** content context */
   showPublishedCount?: boolean;
   showBlocksCount?: boolean;
   showMediaCount?: boolean;
-  /** activity context */
   showAuditLog?: boolean;
 }
 
 export interface MetricCardProps {
-  /** Which data context to load */
   context: CardContext;
-  /** Scope to a specific tenant; omit for platform-wide view */
   tenantId?: number;
-  /** Toggle optional sub-sections */
   features?: MetricCardFeatures;
-  /** Override the default card title */
   title?: string;
 }
 
-// ─── Response shapes from /api/admin/metrics/card ────────────────────────────
+// ─── Response shapes ─────────────────────────────────────────────────────────
 
 interface TenantsData {
   total: number;
@@ -70,8 +72,6 @@ interface ActivityData {
 
 type CardData = TenantsData | SubscriptionsData | MembersData | ContentData | ActivityData;
 
-// ─── Default titles per context ───────────────────────────────────────────────
-
 const DEFAULT_TITLES: Record<CardContext, string> = {
   tenants: "Tenants",
   subscriptions: "Subscriptions",
@@ -80,104 +80,128 @@ const DEFAULT_TITLES: Record<CardContext, string> = {
   activity: "Recent Activity",
 };
 
-const PLAN_COLORS: Record<string, string> = {
-  starter: "bg-slate-200 text-slate-700",
-  growth: "bg-blue-100 text-blue-700",
-  pro: "bg-violet-100 text-violet-700",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "bg-green-100 text-green-700",
-  trialing: "bg-yellow-100 text-yellow-700",
-  canceled: "bg-red-100 text-red-700",
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  owner: "bg-violet-100 text-violet-700",
-  admin: "bg-blue-100 text-blue-700",
-  editor: "bg-slate-200 text-slate-700",
-};
-
-// ─── Subrenderers per context ─────────────────────────────────────────────────
+// ─── Sub-views ────────────────────────────────────────────────────────────────
 
 function TenantsView({ data, features }: { data: TenantsData; features: MetricCardFeatures }) {
   return (
-    <div className="space-y-4">
-      <StatRow label="Total Tenants" value={data.total} />
-      {features.showPlanBreakdown && (
-        <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-widest text-slate-400">By Plan</p>
-          <div className="flex flex-wrap gap-2">
+    <>
+      <CardHeader className="pb-2">
+        <CardDescription>Total Tenants</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{data.total.toLocaleString()}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {features.showPlanBreakdown && (
+          <div className="flex flex-wrap gap-1.5">
             {Object.entries(data.planCounts).map(([plan, count]) => (
-              <Badge key={plan} label={plan} value={count} colorClass={PLAN_COLORS[plan] ?? "bg-slate-100 text-slate-600"} />
+              <Badge key={plan} variant="secondary" className="capitalize">
+                {plan}: {count}
+              </Badge>
             ))}
           </div>
-        </div>
-      )}
-      {features.showTenantList && data.tenants.length > 0 && (
-        <ul className="divide-y divide-white/5">
-          {data.tenants.slice(0, 5).map((t) => (
-            <li key={t.id} className="flex items-center justify-between py-2 text-sm">
-              <span className="font-medium text-slate-200">{t.name}</span>
-              <span className={`rounded px-2 py-0.5 text-xs font-medium ${PLAN_COLORS[t.plan] ?? "bg-slate-200 text-slate-600"}`}>
-                {t.plan}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+        )}
+        {features.showTenantList && data.tenants.length > 0 && (
+          <ul className="space-y-1.5">
+            {data.tenants.slice(0, 5).map((t) => (
+              <li key={t.id} className="flex items-center justify-between text-sm">
+                <span className="font-medium">{t.name}</span>
+                <Badge variant="outline" className="capitalize">{t.plan}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </>
   );
 }
 
 function SubscriptionsView({ data, features }: { data: SubscriptionsData; features: MetricCardFeatures }) {
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        <StatTile label="Active" value={data.active} color="text-green-400" />
-        <StatTile label="Trialing" value={data.trialing} color="text-yellow-400" />
-        <StatTile label="Canceled" value={data.canceled} color="text-red-400" />
-      </div>
-      {features.showStatusBreakdown && (
-        <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-widest text-slate-400">By Status</p>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(data.statusCounts).map(([status, count]) => (
-              <Badge key={status} label={status} value={count} colorClass={STATUS_COLORS[status] ?? "bg-slate-200 text-slate-600"} />
-            ))}
+    <>
+      <CardHeader className="pb-2">
+        <CardDescription>Total Subscriptions</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{data.total.toLocaleString()}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p className="text-lg font-semibold text-green-600 dark:text-green-400">{data.active}</p>
+            <p className="text-xs text-muted-foreground">Active</p>
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">{data.trialing}</p>
+            <p className="text-xs text-muted-foreground">Trialing</p>
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-red-600 dark:text-red-400">{data.canceled}</p>
+            <p className="text-xs text-muted-foreground">Canceled</p>
           </div>
         </div>
-      )}
-    </div>
+        {features.showStatusBreakdown && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {Object.entries(data.statusCounts).map(([status, count]) => (
+              <Badge key={status} variant="secondary" className="capitalize">
+                {status}: {count}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </>
   );
 }
 
 function MembersView({ data, features }: { data: MembersData; features: MetricCardFeatures }) {
   return (
-    <div className="space-y-4">
-      <StatRow label="Total Members" value={data.total} />
-      {features.showRoleBreakdown && (
-        <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-widest text-slate-400">By Role</p>
-          <div className="flex flex-wrap gap-2">
+    <>
+      <CardHeader className="pb-2">
+        <CardDescription>Total Members</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{data.total.toLocaleString()}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {features.showRoleBreakdown && (
+          <div className="flex flex-wrap gap-1.5">
             {Object.entries(data.roleCounts).map(([role, count]) => (
-              <Badge key={role} label={role} value={count} colorClass={ROLE_COLORS[role] ?? "bg-slate-200 text-slate-600"} />
+              <Badge key={role} variant="secondary" className="capitalize">
+                {role}: {count}
+              </Badge>
             ))}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </CardContent>
+    </>
   );
 }
 
 function ContentView({ data, features }: { data: ContentData; features: MetricCardFeatures }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <StatTile label="Pages" value={data.pages} />
-      {features.showPublishedCount && <StatTile label="Published" value={data.publishedPages} color="text-green-400" />}
-      {features.showBlocksCount && <StatTile label="Blocks" value={data.blocks} />}
-      {features.showMediaCount && <StatTile label="Media" value={data.media} />}
-    </div>
+    <>
+      <CardHeader className="pb-2">
+        <CardDescription>Total Pages</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{data.pages.toLocaleString()}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          {features.showPublishedCount && (
+            <div>
+              <p className="text-lg font-semibold text-green-600 dark:text-green-400">{data.publishedPages}</p>
+              <p className="text-xs text-muted-foreground">Published</p>
+            </div>
+          )}
+          {features.showBlocksCount && (
+            <div>
+              <p className="text-lg font-semibold">{data.blocks}</p>
+              <p className="text-xs text-muted-foreground">Blocks</p>
+            </div>
+          )}
+          {features.showMediaCount && (
+            <div>
+              <p className="text-lg font-semibold">{data.media}</p>
+              <p className="text-xs text-muted-foreground">Media</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </>
   );
 }
 
@@ -187,61 +211,39 @@ function ActivityView({ data, features }: { data: ActivityData; features: Metric
       id: `e-${e.id}`,
       label: e.event_type.replace(/_/g, " "),
       time: e.created_at,
-      type: "event" as const,
     })),
     ...(features.showAuditLog
       ? data.recentAuditLogs.map((a) => ({
           id: `a-${a.id}`,
           label: `${a.action} ${a.entity_type}`,
           time: a.created_at,
-          type: "audit" as const,
         }))
       : []),
   ]
     .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
     .slice(0, 8);
 
-  if (combined.length === 0) {
-    return <p className="text-sm text-slate-500">No recent activity.</p>;
-  }
-
   return (
-    <ul className="space-y-2">
-      {combined.map((item) => (
-        <li key={item.id} className="flex items-center justify-between text-sm">
-          <span className="capitalize text-slate-300">{item.label}</span>
-          <span className="text-xs text-slate-500">{formatRelativeTime(item.time)}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-// ─── Shared micro-components ──────────────────────────────────────────────────
-
-function StatRow({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <span className="text-sm text-slate-400">{label}</span>
-      <span className="text-2xl font-semibold text-slate-100">{value.toLocaleString()}</span>
-    </div>
-  );
-}
-
-function StatTile({ label, value, color = "text-slate-100" }: { label: string; value: number; color?: string }) {
-  return (
-    <div className="rounded-lg border border-white/5 bg-white/5 p-3 text-center">
-      <p className={`text-xl font-semibold ${color}`}>{value.toLocaleString()}</p>
-      <p className="mt-0.5 text-xs text-slate-500">{label}</p>
-    </div>
-  );
-}
-
-function Badge({ label, value, colorClass }: { label: string; value: number; colorClass: string }) {
-  return (
-    <span className={`rounded px-2 py-1 text-xs font-medium ${colorClass}`}>
-      {label}: {value}
-    </span>
+    <>
+      <CardHeader className="pb-2">
+        <CardDescription>Events</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{data.eventCount.toLocaleString()}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {combined.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No recent activity.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {combined.map((item) => (
+              <li key={item.id} className="flex items-center justify-between text-sm">
+                <span className="capitalize">{item.label}</span>
+                <span className="text-xs text-muted-foreground">{formatRelativeTime(item.time)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </>
   );
 }
 
@@ -274,25 +276,36 @@ export function MetricCard({ context, tenantId, features = {}, title }: MetricCa
       .catch((e: unknown) => { setError(String(e)); setLoading(false); });
   }, [context, tenantId]);
 
-  const cardTitle = title ?? DEFAULT_TITLES[context];
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-7 w-16" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardDescription>{title ?? DEFAULT_TITLES[context]}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-destructive">{error}</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="rounded-xl border border-white/5 bg-[hsl(var(--admin-surface))] p-5">
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-slate-400">{cardTitle}</h3>
-
-      {loading && (
-        <div className="flex h-16 items-center justify-center">
-          <span className="text-sm text-slate-500">Loading…</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && data && (
+    <Card>
+      {data && (
         <>
           {context === "tenants" && <TenantsView data={data as TenantsData} features={features} />}
           {context === "subscriptions" && <SubscriptionsView data={data as SubscriptionsData} features={features} />}
@@ -301,6 +314,6 @@ export function MetricCard({ context, tenantId, features = {}, title }: MetricCa
           {context === "activity" && <ActivityView data={data as ActivityData} features={features} />}
         </>
       )}
-    </div>
+    </Card>
   );
 }

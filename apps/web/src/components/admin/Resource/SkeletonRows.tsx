@@ -1,15 +1,17 @@
-/** Animated skeleton placeholder rows shown while the table is loading */
+import { Skeleton } from "@repo/ui/skeleton";
+import { TableRow, TableCell } from "@repo/ui/table";
+
 export function SkeletonRows({ cols, rows }: { cols: number; rows: number }) {
   return (
     <>
       {Array.from({ length: rows }).map((_, i) => (
-        <tr key={i} className="border-b">
+        <TableRow key={i}>
           {Array.from({ length: cols }).map((_, j) => (
-            <td key={j} className="px-4 py-3">
-              <div className="h-4 animate-pulse rounded bg-muted" />
-            </td>
+            <TableCell key={j}>
+              <Skeleton className="h-4 w-full" />
+            </TableCell>
           ))}
-        </tr>
+        </TableRow>
       ))}
     </>
   );

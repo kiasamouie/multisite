@@ -1,5 +1,16 @@
 "use client";
 
+import { Input } from "@repo/ui/input";
+import { Label } from "@repo/ui/label";
+import { Textarea } from "@repo/ui/textarea";
+import { Switch } from "@repo/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/select";
 import type { FieldDef } from "./types";
 
 interface FieldRendererProps {
@@ -9,62 +20,59 @@ interface FieldRendererProps {
   isEditMode: boolean;
 }
 
-const inputClass =
-  "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
-const disabledClass = "opacity-50 cursor-not-allowed";
-
 export function FieldRenderer({ field, value, onChange, isEditMode }: FieldRendererProps) {
   const disabled = isEditMode && (field.disabledOnEdit ?? false);
-  const cls = `${inputClass} ${disabled ? disabledClass : ""}`;
 
   if (field.type === "select") {
     return (
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">{field.label}</label>
-        <select
+      <div className="grid gap-2">
+        <Label htmlFor={field.key}>{field.label}</Label>
+        <Select
           value={String(value ?? "")}
-          onChange={(e) => onChange(e.target.value)}
+          onValueChange={(val) => onChange(val)}
           disabled={disabled}
-          required={field.required}
-          className={cls}
         >
-          {field.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id={field.key}>
+            <SelectValue placeholder={field.placeholder ?? `Select ${field.label}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {field.options?.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     );
   }
 
   if (field.type === "checkbox") {
     return (
-      <label className="flex cursor-pointer items-center gap-2">
-        <input
-          type="checkbox"
+      <div className="flex items-center gap-3">
+        <Switch
+          id={field.key}
           checked={Boolean(value)}
-          onChange={(e) => onChange(e.target.checked)}
+          onCheckedChange={(checked) => onChange(checked)}
           disabled={disabled}
-          className="rounded"
         />
-        <span className="text-sm">{field.label}</span>
-      </label>
+        <Label htmlFor={field.key}>{field.label}</Label>
+      </div>
     );
   }
 
   if (field.type === "textarea") {
     return (
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">{field.label}</label>
-        <textarea
+      <div className="grid gap-2">
+        <Label htmlFor={field.key}>{field.label}</Label>
+        <Textarea
+          id={field.key}
           placeholder={field.placeholder ?? field.label}
           value={String(value ?? "")}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           required={field.required}
           rows={3}
-          className={`${cls} resize-none`}
         />
       </div>
     );
@@ -72,9 +80,10 @@ export function FieldRenderer({ field, value, onChange, isEditMode }: FieldRende
 
   // text | email | number
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-muted-foreground">{field.label}</label>
-      <input
+    <div className="grid gap-2">
+      <Label htmlFor={field.key}>{field.label}</Label>
+      <Input
+        id={field.key}
         type={field.type}
         placeholder={field.placeholder ?? field.label}
         value={String(value ?? "")}
@@ -87,7 +96,6 @@ export function FieldRenderer({ field, value, onChange, isEditMode }: FieldRende
         }
         disabled={disabled}
         required={field.required}
-        className={cls}
       />
     </div>
   );

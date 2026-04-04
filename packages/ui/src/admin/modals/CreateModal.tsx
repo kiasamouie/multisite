@@ -1,6 +1,14 @@
 "use client";
 
 import { ReactNode } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../../components/ui/dialog";
+import { Button } from "../../components/ui/button";
 
 interface CreateModalProps {
   isOpen: boolean;
@@ -19,32 +27,29 @@ export function CreateModal({
   onClose,
   children,
 }: CreateModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="rounded-lg bg-white p-6 shadow-lg max-w-sm w-full dark:bg-slate-950">
-        <h2 className="mb-4 text-lg font-bold">{title}</h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         <form onSubmit={onSubmit}>
-          <div className="space-y-3">{children}</div>
-          <div className="mt-4 flex gap-2">
-            <button
+          <div className="space-y-4 py-2">{children}</div>
+          <DialogFooter className="mt-4">
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-input px-3 py-2 text-sm hover:bg-muted"
+              disabled={isLoading}
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? "Creating..." : "Create"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

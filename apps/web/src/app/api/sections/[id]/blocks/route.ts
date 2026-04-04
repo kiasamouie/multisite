@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { authenticateRequest, requireTenantMembership } from "@/lib/api-auth";
 import { blockSchema } from "@repo/lib/validation/schemas";
 import type { Json } from "@repo/lib/supabase/types";
@@ -74,5 +75,6 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  revalidateTag("pages");
   return NextResponse.json(data, { status: 201 });
 }

@@ -3,6 +3,7 @@ import { createServerClient } from "@repo/lib/supabase/server";
 import { createAdminClient } from "@repo/lib/supabase/admin";
 import { getPlatformAdmin } from "@repo/lib/tenant/platform";
 import { resolveTenantsByUserId } from "@repo/lib/tenant/resolver";
+import { revalidateTag } from "next/cache";
 import type { Json } from "@repo/lib/supabase/types";
 import { NextResponse } from "next/server";
 
@@ -184,6 +185,8 @@ export async function POST(request: Request) {
         }
       }
     }
+
+    revalidateTag("pages");
 
     return NextResponse.json({
       pageId: page.id,
