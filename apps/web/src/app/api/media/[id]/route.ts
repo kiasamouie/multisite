@@ -36,7 +36,7 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
   const { error } = await auth.admin.from("media").delete().eq("id", mediaId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  revalidateTag("media");
+  revalidateTag("media", "max");
 
   return NextResponse.json({ success: true });
 }

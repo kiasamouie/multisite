@@ -104,7 +104,7 @@ export async function POST(
 
   // Auto-create page_media block and invalidate page cache
   await ensurePageMediaBlock(auth.admin, page_id, usage_type);
-  revalidateTag("pages");
+  revalidateTag("pages", "max");
 
   return NextResponse.json(data, { status: 201 });
 }

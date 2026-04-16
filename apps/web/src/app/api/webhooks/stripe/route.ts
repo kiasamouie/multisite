@@ -3,6 +3,8 @@ import type Stripe from "stripe";
 import { createAdminClient } from "@repo/lib/supabase/admin";
 import { getStripe } from "@repo/lib/stripe/client";
 import { logger } from "@repo/lib/logger";
+import { syncTenantPlan } from "@repo/lib/tenant/provisioning";
+import type { PlanTier } from "@repo/lib/stripe/plans";
 
 export async function POST(request: NextRequest) {
   const stripe = getStripe();
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
           { onConflict: "stripe_subscription_id" }
         );
 
-        // Update tenant plan based on price
+        // Update tenant plan and sync flags/pages based on price
         const priceId = subscription.items.data[0]?.price.id;
         const plan = getPlanFromPriceId(priceId);
         if (plan) {
@@ -64,6 +66,10 @@ export async function POST(request: NextRequest) {
             .from("tenants")
             .update({ plan })
             .eq("id", tenantId);
+          const syncResult = await syncTenantPlan(tenantId, plan);
+          if (!syncResult.success) {
+            logger.warn("Plan sync had errors on checkout", { tenantId, errors: syncResult.errors });
+          }
         }
 
         logger.info("Subscription created", { tenant: tenantId, subscriptionId: subscription.id });
@@ -72,17 +78,42 @@ export async function POST(request: NextRequest) {
 
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
+        const newPriceId = subscription.items.data[0]?.price.id || "";
 
         await supabase
           .from("subscriptions")
           .update({
             status: subscription.status,
-            price_id: subscription.items.data[0]?.price.id || "",
+            price_id: newPriceId,
             current_period_end: new Date(
               subscription.current_period_end * 1000
             ).toISOString(),
           })
           .eq("stripe_subscription_id", subscription.id);
+
+        // Resolve tenant and update plan + sync if the price tier changed
+        const { data: subRow } = await supabase
+          .from("subscriptions")
+          .select("tenant_id")
+          .eq("stripe_subscription_id", subscription.id)
+          .single();
+
+        if (subRow) {
+          const newPlan = getPlanFromPriceId(newPriceId);
+          if (newPlan) {
+            await supabase
+              .from("tenants")
+              .update({ plan: newPlan })
+              .eq("id", subRow.tenant_id);
+            const syncResult = await syncTenantPlan(subRow.tenant_id, newPlan);
+            if (!syncResult.success) {
+              logger.warn("Plan sync had errors on subscription update", {
+                tenantId: subRow.tenant_id,
+                errors: syncResult.errors,
+              });
+            }
+          }
+        }
 
         logger.info("Subscription updated", { subscriptionId: subscription.id, status: subscription.status });
         break;
@@ -96,7 +127,7 @@ export async function POST(request: NextRequest) {
           .update({ status: "canceled" })
           .eq("stripe_subscription_id", subscription.id);
 
-        // Downgrade tenant to starter
+        // Downgrade tenant to starter and sync flags/pages
         const { data: sub } = await supabase
           .from("subscriptions")
           .select("tenant_id")
@@ -108,6 +139,13 @@ export async function POST(request: NextRequest) {
             .from("tenants")
             .update({ plan: "starter" })
             .eq("id", sub.tenant_id);
+          const syncResult = await syncTenantPlan(sub.tenant_id, "starter");
+          if (!syncResult.success) {
+            logger.warn("Plan sync had errors on subscription cancel", {
+              tenantId: sub.tenant_id,
+              errors: syncResult.errors,
+            });
+          }
         }
 
         logger.info("Subscription canceled", { subscriptionId: subscription.id });

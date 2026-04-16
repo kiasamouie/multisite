@@ -165,3 +165,57 @@ export const getCachedFlags = unstable_cache(
   ["tenant-flags"],
   { revalidate: false, tags: ["flags"] }
 );
+
+/**
+ * Cached published pages for the site nav — ordered by title.
+ * Only returns pages whose feature flag is enabled (for template pages).
+ * Used to auto-build the navbar links from the actual pages table.
+ */
+export const getCachedNavPages = unstable_cache(
+  async (tenantId: number): Promise<Array<{ title: string; slug: string }>> => {
+    const supabase = createAdminClient();
+
+    const { data: pages } = await supabase
+      .from("pages")
+      .select("title, slug, page_type, feature_key")
+      .eq("tenant_id", tenantId)
+      .eq("is_published", true)
+      .eq("is_homepage", false)
+      .order("title", { ascending: true });
+
+    if (!pages || pages.length === 0) return [];
+
+    // For template pages, filter out those whose feature flag is disabled
+    const featureKeys = [
+      ...new Set(
+        pages
+          .filter((p) => (p as Record<string, unknown>).page_type === "template" && (p as Record<string, unknown>).feature_key)
+          .map((p) => String((p as Record<string, unknown>).feature_key))
+      ),
+    ];
+
+    let enabledFlags = new Set<string>();
+    if (featureKeys.length > 0) {
+      const { data: flags } = await supabase
+        .from("feature_flags")
+        .select("key, enabled")
+        .eq("tenant_id", tenantId)
+        .in("key", featureKeys);
+      enabledFlags = new Set(
+        (flags ?? []).filter((f) => f.enabled).map((f) => f.key)
+      );
+    }
+
+    return pages
+      .filter((p) => {
+        const pg = p as Record<string, unknown>;
+        if (pg.page_type === "template" && pg.feature_key) {
+          return enabledFlags.has(String(pg.feature_key));
+        }
+        return true; // custom pages always shown
+      })
+      .map((p) => ({ title: p.title, slug: p.slug }));
+  },
+  ["tenant-nav-pages"],
+  { revalidate: false, tags: ["pages", "flags"] }
+);

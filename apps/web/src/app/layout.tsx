@@ -2,7 +2,9 @@ import "@repo/ui/globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "@repo/ui/toaster";
 import { getCurrentTenant } from "@/lib/tenant";
+import { getCachedNavPages } from "@/lib/cache";
 import { SiteNav, SiteFooter } from "@/components/site";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -18,6 +20,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const tenant = await getCurrentTenant();
+  const navPages = tenant ? await getCachedNavPages(tenant.id) : [];
 
   const brandingVars = tenant?.branding
     ? {
@@ -39,16 +42,18 @@ export default async function RootLayout({
         className={inter.className}
         style={brandingVars as React.CSSProperties}
       >
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {tenant && (
             <SiteNav
               tenantName={tenant.name}
               branding={tenant.branding || {}}
               navConfig={tenant.nav_config || {}}
+              pages={navPages}
             />
           )}
           <div className="min-h-screen">{children}</div>
           {tenant && <SiteFooter tenantName={tenant.name} />}
+          <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>
     </html>

@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     // Media
     (() => {
-      let q = admin.from("media").select("id, tenant_id, size, created_at");
+      let q = admin.from("media").select("id, tenant_id, size, mime_type, created_at");
       if (tenantId) q = q.eq("tenant_id", tenantId);
       return q;
     })(),
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
   const subscriptions = subsResult.data ?? [];
   const members = membersResult.data ?? [];
   const pages = (pagesResult as { data: Array<{ id: number; tenant_id: number; is_published: boolean; created_at: string }> | null }).data ?? [];
-  const media = (mediaResult as { data: Array<{ id: number; tenant_id: number; size: number | null; created_at: string }> | null }).data ?? [];
+  const media = (mediaResult as { data: Array<{ id: number; tenant_id: number; size: number | null; mime_type: string | null; created_at: string }> | null }).data ?? [];
   const events = eventsResult.data ?? [];
   const auditLogs = auditResult.data ?? [];
   const recentTenants = (recentTenantsResult as { data: Array<{ id: number; name: string; domain: string; plan: string; created_at: string }> | null }).data ?? [];
@@ -241,6 +241,89 @@ export async function GET(request: NextRequest) {
     value,
   }));
 
+  // ── Additional chart data ──────────────────────────────────────────────
+
+  // Media by type (donut)
+  const mediaByType: Record<string, number> = {};
+  for (const m of media) {
+    const mime = m.mime_type ?? "unknown";
+    const category = mime.startsWith("image/") ? "Images"
+      : mime.startsWith("video/") ? "Videos"
+      : mime.startsWith("audio/") ? "Audio"
+      : mime.startsWith("application/pdf") ? "PDFs"
+      : "Other";
+    mediaByType[category] = (mediaByType[category] ?? 0) + 1;
+  }
+  const mediaTypeChart = Object.entries(mediaByType).map(([name, count]) => ({ name, count }));
+
+  // Pages: published vs draft over time (stacked area, last 30 days)
+  const pageGrowthBuckets: Record<string, { published: number; draft: number }> = {};
+  for (const key of Object.keys(dayBuckets)) {
+    pageGrowthBuckets[key] = { published: 0, draft: 0 };
+  }
+  for (const p of pages) {
+    const key = p.created_at.slice(0, 10);
+    if (key in pageGrowthBuckets) {
+      if (p.is_published) pageGrowthBuckets[key]!.published++;
+      else pageGrowthBuckets[key]!.draft++;
+    }
+  }
+  const pageStatusChart = Object.entries(pageGrowthBuckets).map(([date, v]) => ({
+    date: date.slice(5),
+    published: v.published,
+    draft: v.draft,
+  }));
+
+  // Members by role (donut)
+  const membersByRole: Record<string, number> = {};
+  for (const m of members) {
+    const role = (m as { role: string }).role ?? "member";
+    membersByRole[role] = (membersByRole[role] ?? 0) + 1;
+  }
+  const memberRoleChart = Object.entries(membersByRole).map(([name, count]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    count,
+  }));
+
+  // Events by type (bar)
+  const eventsByType: Record<string, number> = {};
+  for (const ev of events) {
+    const t = (ev as { event_type: string }).event_type ?? "unknown";
+    eventsByType[t] = (eventsByType[t] ?? 0) + 1;
+  }
+  const eventTypeChart = Object.entries(eventsByType)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, count]) => ({ name: name.replace(/_/g, " "), count }));
+
+  // Media uploads over time (bar, last 30 days)
+  const mediaUploadBuckets: Record<string, number> = { ...dayBuckets };
+  Object.keys(mediaUploadBuckets).forEach((k) => (mediaUploadBuckets[k] = 0));
+  for (const m of media) {
+    const key = m.created_at.slice(0, 10);
+    if (key in mediaUploadBuckets) mediaUploadBuckets[key]!++;
+  }
+  const mediaUploadChart = Object.entries(mediaUploadBuckets).map(([date, count]) => ({
+    date: date.slice(5),
+    uploads: count,
+  }));
+
+  // Storage growth over time (cumulative area, last 30 days)
+  const storageBuckets: Record<string, number> = { ...dayBuckets };
+  Object.keys(storageBuckets).forEach((k) => (storageBuckets[k] = 0));
+  for (const m of media) {
+    const key = m.created_at.slice(0, 10);
+    if (key in storageBuckets) storageBuckets[key] += (m.size ?? 0);
+  }
+  const preStorageMb = media
+    .filter((m) => new Date(m.created_at) < thirtyDaysAgo)
+    .reduce((sum, m) => sum + (m.size ?? 0), 0) / (1024 * 1024);
+  let cumulativeStorage = preStorageMb;
+  const storageGrowthChart = Object.entries(storageBuckets).map(([date, bytes]) => {
+    cumulativeStorage += bytes / (1024 * 1024);
+    return { date: date.slice(5), mb: Math.round(cumulativeStorage * 10) / 10 };
+  });
+
   // ── Response ───────────────────────────────────────────────────────────
 
   return NextResponse.json({
@@ -329,6 +412,12 @@ export async function GET(request: NextRequest) {
       week: weekChart,
       growth: cumulativeGrowth,
       plans: tenantId === null ? planChart : subStatusChart,
+      mediaByType: mediaTypeChart,
+      pageStatus: pageStatusChart,
+      memberRoles: memberRoleChart,
+      eventTypes: eventTypeChart,
+      mediaUploads: mediaUploadChart,
+      storageGrowth: storageGrowthChart,
     },
 
     // Activity feed

@@ -10,13 +10,14 @@ This is a **full SaaS website builder platform** (like lightweight Webflow/Squar
 ### Technology Stack
 
 **Frontend:**
-- Next.js 15 (App Router)
+- Next.js 16 (App Router, Turbopack)
 - React 19
 - TypeScript
-- Tailwind CSS v3
+- Tailwind CSS v4
 - shadcn/ui (component library — all UI primitives live in `@repo/ui`)
-- Refine.js v5 (data/state/CRUD management for admin tables)
+- @tanstack/react-query v5 (data fetching/caching)
 - Recharts 2 (charts on dashboard)
+- sonner (toast notifications)
 
 **Backend & Database:**
 - Supabase (PostgreSQL + Auth + RLS + Storage)
@@ -187,14 +188,7 @@ apps/web/src/
   │       └── feature-flags/        ← tenant flag lookup (RLS)
   ├── components/
   │   ├── admin/
-  │   │   ├── Resource/             ← universal CRUD table component
-  │   │   │   ├── index.tsx
-  │   │   │   ├── types.ts
-  │   │   │   ├── cells.tsx
-  │   │   │   ├── SidePanel.tsx
-  │   │   │   ├── ConfirmDialog.tsx
-  │   │   │   ├── FieldRenderer.tsx
-  │   │   │   └── SkeletonRows.tsx
+
   │   │   ├── dashboard/
   │   │   │   ├── DashboardLayout.tsx  ← full dashboard UI
   │   │   │   └── index.ts
@@ -204,8 +198,12 @@ apps/web/src/
   │   │   │   └── index.ts
   │   │   ├── media/
   │   │   │   ├── MediaUploadInput.tsx
+  │   │   │   ├── MediaDetailsPanel.tsx
+  │   │   │   ├── MediaEditAssociations.tsx
   │   │   │   └── index.ts
   │   │   └── index.ts
+  │   ├── hooks/
+  │   │   └── useSupabase.ts        ← useSupabaseList, useSupabaseItem, useSupabaseDelete, useCrudPanel
   │   └── site/
   │       ├── SiteNav.tsx
   │       ├── SiteFooter.tsx
@@ -225,9 +223,27 @@ packages/ui/src/
   │   ├── AppSidebar.tsx            ← collapsible nav sidebar
   │   ├── AdminSidebar.tsx          ← sidebar wrapper
   │   ├── layout/
-  │   │   ├── PageHeader.tsx        ← deprecated (breadcrumbs now in Shell)
   │   │   └── Shell.tsx             ← current shell (search, breadcrumbs, theme toggle)
-  │   ├── modals/                   ← create/edit form modals
+  │   ├── components/               ← generic admin component library
+  │   │   ├── index.ts              ← barrel export
+  │   │   ├── DataView.tsx          ← table/card/grouped data display with pagination
+  │   │   ├── CrudModal.tsx         ← Dialog for create/edit/view modes
+  │   │   ├── ConfirmDialog.tsx     ← AlertDialog for destructive actions
+  │   │   ├── Filter.tsx            ← search bar, pill tabs, dropdown filters
+  │   │   ├── StatusBadge.tsx       ← 20+ status configs, pulse/glow effects
+  │   │   ├── InfoCard.tsx          ← metric/content/panel card variants
+  │   │   ├── EmptyState.tsx        ← empty + loading state components
+  │   │   ├── Chart.tsx             ← area/bar/donut via recharts
+  │   │   ├── ActivityFeed.tsx      ← timestamped event list
+  │   │   ├── AlertBanner.tsx       ← error/success alert
+  │   │   ├── CollapsibleSection.tsx ← expand/collapse section
+  │   │   ├── ReadOnlyField.tsx     ← label + value display
+  │   │   ├── JsonBlock.tsx         ← JSON pretty-printer
+  │   │   ├── DetailLayout.tsx      ← 8/4 grid layout
+  │   │   ├── ProgressBar.tsx       ← gradient progress bar
+  │   │   ├── PageHeader.tsx        ← title + actions + back link
+  │   │   ├── data-view-types.ts    ← Column<T> interface
+  │   │   └── crud-modal-types.ts   ← CrudMode, CrudModalProps
   │   └── theme/ThemeToggle.tsx     ← dark/light theme toggle
   └── globals.css                   ← Tailwind base + CSS variables + animations
 
@@ -280,20 +296,23 @@ packages/template/src/
 ### Component Philosophy
 
 **✅ DO:**
-- Use Refine.js for data/state logic (useTable, useCreate, etc.)
+- Use `DataView` for all list/table displays (table, card, grouped modes)
+- Use `CrudModal` for all create/edit/view interactions (no side panels)
+- Use `useSupabaseList` / `useSupabaseDelete` / `useCrudPanel` hooks for data + state
 - Write lean UI layer in React + Tailwind/shadcn (no Material-UI, no bloat)
 - Favor composition: pass props for config
 - One concern per file: separate data, render, style
 - Extract to `/packages/ui` or `/packages/lib` only if shared
 - Use barrel exports (index.ts) for folder imports
 - Use shadcn components from `@repo/ui` — all primitives are already installed
+- Use `sonner` toast for success/error notifications
 
 **❌ DON'T:**
 - Hardcode behavior in components
-- Create unnecessary wrapper/Cell functions
-- Call Supabase directly from components
+- Create separate Cell components — use inline `render` in column definitions
+- Call Supabase directly from components (use hooks or API routes)
 - Over-engineer simple features
-- Build complex custom state when Resource can handle it
+- Use side panels — use CrudModal mode="view" instead
 - Install duplicate UI libraries — everything should come from `@repo/ui`
 
 ---
@@ -428,92 +447,111 @@ All Recharts components have `isAnimationActive animationDuration={600-800}`.
 
 ---
 
-The `Resource<T>` component is your workhorse for list/CRUD pages. Use it for any "admin table" view (tenants, pages, media, subscriptions, etc).
+## 🔧 Admin Page Pattern: DataView + CrudModal + Hooks
 
-### Core Props
+All admin list/CRUD pages follow the same composition pattern. There is no monolithic `Resource` component — instead, pages compose generic building blocks:
+
+### Core Building Blocks
+
+| Component | Import | Purpose |
+|---|---|---|
+| `DataView` | `@repo/ui/admin/components` | Table/card/grouped data display with pagination |
+| `CrudModal` | `@repo/ui/admin/components` | Dialog for create/edit (form) and view (read-only) modes |
+| `ConfirmDialog` | `@repo/ui/admin/components` | Destructive action confirmation |
+| `Filter` | `@repo/ui/admin/components` | Search bar, pill tab filters, dropdown filters |
+| `PageHeader` | `@repo/ui/admin/components` | Title + action buttons (exported as `ComponentPageHeader`) |
+| `StatusBadge` | `@repo/ui/admin/components` | 20+ status configs with pulse/glow effects |
+| `ReadOnlyField` | `@repo/ui/admin/components` | Label + value for view mode |
+| `useSupabaseList` | `@/hooks/useSupabase` | Paginated list query with TanStack Query |
+| `useSupabaseDelete` | `@/hooks/useSupabase` | Delete with auto-invalidation |
+| `useCrudPanel` | `@/hooks/useSupabase` | Modal open/close state + mode + item tracking |
+
+### DataView Props
 
 ```typescript
-<Resource<PageRecord>
-  // Data & Queries
-  resource="pages"                    // Supabase table name
-  select="*, tenants(...)"            // PostgREST select (joins)
-  filters={[...]}                     // Initial Refine filters
-  
-  // Display
-  title="Pages"
-  subtitle="Manage pages"
-  searchField="title"
-  searchPlaceholder="Search..."
-  columns={[...]}                     // Column definitions
-  
-  // Features
-  canCreate={true}                    // Show "+ Add" button
-  canEdit={true}                      // Show "Edit" action
-  canDelete={true}                    // Show "Delete" action
-  canSort={true}                      // Enable sortable columns
-  canSearch={true}                    // Show search input
-  
-  // Forms
-  createFields={[...]}                // Form fields for create modal
-  editFields={[...]}                  // Form fields for edit modal
-  defaultValues={{}}                  // Initial form state
-  
-  // Side panel (detail view)
-  sidePanel={{
-    icon: "article",
-    title: "Page Details",
-    subtitle: (row) => row.title,
-    view: (row) => <PageDetailsPanel page={row} />,
-    width: "md",
-  }}
+<DataView<PageRecord>
+  columns={columns}                    // Column<T>[] — key, label, render
+  data={list.data}                     // T[]
+  loading={list.isLoading}
+  mode="table"                         // "table" | "card" | "grouped"
+  emptyMessage="No pages found."
+  page={list.page}                     // Current page number
+  totalPages={list.totalPages}         // Total pages from useSupabaseList
+  onPageChange={list.setPage}          // Page navigation
+  rowActions={(row) => (               // Action buttons per row
+    <Button onClick={() => detailPanel.openPanel("view", row)}>View</Button>
+  )}
 />
 ```
 
 ### Column Definitions
 
-**Simple column** (just display the value):
 ```typescript
-{ key: "title", label: "Title" }
-```
-
-**Column with custom render** (inline function, no separate Cell component):
-```typescript
-{
-  key: "is_published",
-  label: "Status",
-  render: (value) => {
-    const isPublished = Boolean(value);
-    return (
-      <span className={isPublished ? "bg-green-100" : "bg-gray-100"}>
-        {isPublished ? "Published" : "Draft"}
-      </span>
-    );
+const columns: Column<PageRecord>[] = [
+  { key: "title", label: "Title" },                    // Simple: renders value as string
+  {
+    key: "is_published",
+    label: "Status",
+    render: (row) => (                                  // Custom: receives full row object
+      <Badge variant={row.is_published ? "default" : "secondary"}>
+        {row.is_published ? "Published" : "Draft"}
+      </Badge>
+    ),
   },
-  sortable: true,  // Enable sort arrows
-}
+];
 ```
 
-**Column with access to full row** (for derived data):
+### CrudModal Usage
+
 ```typescript
-{
-  key: "tenant_id",  // Must be unique, even if derived
-  label: "Tenant",
-  render: (value, row: Record<string, unknown>) => {
-    const tenants = row.tenants as { name?: string } | undefined;
-    return <span>{tenants?.name ?? "—"}</span>;
-  },
-}
+// Create/Edit mode — wraps children in a <form>
+<CrudModal
+  open={crud.open}
+  onOpenChange={() => crud.closePanel()}
+  mode={crud.mode}                                     // "create" | "edit"
+  title={crud.mode === "create" ? "Add Page" : "Edit Page"}
+  size="md"                                            // "md" | "lg" | "xl" | "full"
+  onSubmit={handleSubmit}                               // FormEvent handler
+  submitting={crud.submitting}
+>
+  <Input value={formData.title} onChange={...} />       // Form fields
+</CrudModal>
+
+// View mode — read-only, no form
+<CrudModal
+  open={detailPanel.open}
+  onOpenChange={() => detailPanel.closePanel()}
+  mode="view"
+  title="Page Details"
+  size="lg"
+>
+  <ReadOnlyField label="Title" value={detailPanel.item?.title} />
+</CrudModal>
 ```
 
-**Unique keys are critical** - React uses them to track list items:
-```typescript
-// ✅ GOOD - unique keys
-{ key: "metadata_type", label: "Type", render: ... }
-{ key: "metadata_size", label: "Size", render: ... }
+### Hooks
 
-// ❌ BAD - duplicate keys cause React warnings
-{ key: "metadata", label: "Type", render: ... }
-{ key: "metadata", label: "Size", render: ... }
+```typescript
+// Paginated list with TanStack Query + Supabase
+const list = useSupabaseList<PageRecord>({
+  resource: "pages",
+  select: "*, tenants(id, name, domain)",
+  filters: [{ field: "tenant_id", operator: "eq", value: tenantId }],
+});
+// Returns: { data, isLoading, page, totalPages, setPage, invalidate }
+
+// Delete with auto-invalidation
+const { deleteRecord, deleting } = useSupabaseDelete("pages");
+await deleteRecord(id);
+
+// Modal state management
+const crud = useCrudPanel<PageRecord>();
+crud.openPanel("create");                              // Open create mode
+crud.openPanel("edit", row);                           // Open edit mode with item
+crud.openPanel("view", row);                           // Open view mode with item
+crud.closePanel();
+crud.setSubmitting(true);
+// Exposes: { open, mode, item, submitting, setSubmitting, openPanel, closePanel }
 ```
 
 ---
@@ -529,107 +567,162 @@ The `Resource<T>` component is your workhorse for list/CRUD pages. Use it for an
 ```typescript
 "use client";
 
-import { useTenantAdmin, Resource } from "@/components/admin";
+import { useState, useMemo, type FormEvent } from "react";
+import { createBrowserClient } from "@repo/lib/supabase/browser";
+import { useTenantAdmin } from "@/components/admin";
+import {
+  useSupabaseList, useSupabaseDelete, useCrudPanel, type SupabaseFilter,
+} from "@/hooks/useSupabase";
+import {
+  ComponentPageHeader as PageHeader, DataView, Filter, CrudModal, ConfirmDialog,
+} from "@repo/ui/admin/components";
+import type { Column } from "@repo/ui/admin/components";
+import { Button } from "@repo/ui/button";
+import { Input } from "@repo/ui/input";
+import { Label } from "@repo/ui/label";
+import { Pencil, Trash2, Eye } from "lucide-react";
+import { toast } from "sonner";
 
 interface ItemRecord extends Record<string, unknown> {
   id: number;
   tenant_id: number;
-  // ... fields ...
-  tenants?: { id: number; name: string };  // For super admin join
+  name: string;
+  status: string;
+  created_at: string;
+  tenants?: { id: number; name: string };
 }
 
 export default function ItemsPage() {
   const { tenantId } = useTenantAdmin();
-  const isSuper = tenantId === null;  // Super admin check
-
-  return (
-    <Resource<ItemRecord>
-      resource="items"
-      title={isSuper ? "All Items" : "Items"}
-      
-      // RLS + Filtering
-      select={isSuper ? "*, tenants(id, name)" : "*"}
-      filters={isSuper ? undefined : [
-        { field: "tenant_id", operator: "eq", value: tenantId }
-      ]}
-      
-      // Permissions
-      canCreate={!isSuper}  // Only tenant admin can create
-      canEdit={!isSuper}
-      canDelete={!isSuper}
-      
-      // Different columns for each scope
-      columns={
-        isSuper
-          ? [
-              { key: "name", label: "Name" },
-              { key: "status", label: "Status", render: StatusBadge },
-              { key: "tenant_id", label: "Tenant", render: TenantColumn },
-              { key: "created_at", label: "Created", render: DateCell },
-            ]
-          : [
-              { key: "name", label: "Name" },
-              { key: "status", label: "Status", render: StatusBadge },
-              { key: "created_at", label: "Created", render: DateCell },
-            ]
-      }
-      
-      // Create/Edit forms
-      createFields={[
-        { key: "name", label: "Name", type: "text", required: true },
-        { key: "status", label: "Status", type: "select", options: [...] },
-      ]}
-      editFields={[
-        { key: "name", label: "Name", type: "text", required: true },
-        { key: "status", label: "Status", type: "select", options: [...] },
-      ]}
-      defaultValues={{ name: "", status: "draft" }}
-      
-      // Details side panel
-      sidePanel={{
-        icon: "info",
-        title: "Item Details",
-        subtitle: (row) => (row as ItemRecord).name,
-        view: (row) => <ItemDetailsPanel item={row as ItemRecord} />,
-        width: "md",
-      }}
-    />
-  );
-}
-
-// ✅ Inline render functions - no separate Cell components!
-function StatusBadge(value: unknown) {
-  const status = String(value);
-  return (
-    <span className={status === "published" ? "bg-green-100" : "bg-gray-100"}>
-      {status}
-    </span>
-  );
-}
-
-function TenantColumn(value: unknown, row: Record<string, unknown>) {
-  const tenants = row.tenants as { name?: string } | undefined;
-  return <span>{tenants?.name ?? "—"}</span>;
-}
-
-// Side panel component for detailed view
-function ItemDetailsPanel({ item }: { item: ItemRecord }) {
-  const { tenantId } = useTenantAdmin();
   const isSuper = tenantId === null;
+  const [search, setSearch] = useState("");
+
+  const filters = useMemo<SupabaseFilter[]>(() => {
+    const f: SupabaseFilter[] = [];
+    if (!isSuper) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (search.trim()) f.push({ field: "name", operator: "contains", value: search });
+    return f;
+  }, [tenantId, isSuper, search]);
+
+  const list = useSupabaseList<ItemRecord>({
+    resource: "items",
+    select: isSuper ? "*, tenants(id, name)" : "*",
+    filters,
+  });
+
+  const detailPanel = useCrudPanel<ItemRecord>();
+  const crud = useCrudPanel<ItemRecord>();
+  const { deleteRecord } = useSupabaseDelete("items");
+  const [deleteTarget, setDeleteTarget] = useState<ItemRecord | null>(null);
+  const [formData, setFormData] = useState({ name: "", status: "draft" });
+
+  const openCreate = () => {
+    setFormData({ name: "", status: "draft" });
+    crud.openPanel("create");
+  };
+
+  const openEdit = (row: ItemRecord) => {
+    setFormData({ name: row.name, status: row.status });
+    crud.openPanel("edit", row);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    crud.setSubmitting(true);
+    try {
+      const supabase = createBrowserClient();
+      if (crud.mode === "create") {
+        const { error } = await (supabase as any).from("items").insert({ ...formData, tenant_id: tenantId });
+        if (error) throw error;
+        toast.success("Item created");
+      } else {
+        const { error } = await (supabase as any).from("items").update(formData).eq("id", crud.item!.id);
+        if (error) throw error;
+        toast.success("Item updated");
+      }
+      crud.closePanel();
+      list.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      crud.setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteRecord(deleteTarget.id);
+      toast.success("Item deleted");
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
+    }
+  };
+
+  const columns: Column<ItemRecord>[] = [
+    { key: "name", label: "Name" },
+    ...(isSuper ? [{
+      key: "tenants" as const,
+      label: "Tenant",
+      render: (row: ItemRecord) => <span className="text-xs">{row.tenants?.name ?? "—"}</span>,
+    }] : []),
+    { key: "created_at", label: "Created",
+      render: (row) => <span className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</span>,
+    },
+  ];
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="text-xs font-medium text-muted-foreground">Name</label>
-        <p className="mt-1 text-sm font-medium">{item.name}</p>
-      </div>
-      
-      {isSuper && item.tenants && (
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">Tenant</label>
-          <p className="mt-1 text-sm">{item.tenants.name}</p>
+    <div className="flex flex-col gap-6 py-2">
+      <PageHeader
+        title={isSuper ? "All Items" : "Items"}
+        actions={!isSuper ? <Button size="sm" onClick={openCreate}>+ Add Item</Button> : undefined}
+      />
+      <Filter type="bar" search={search} onSearchChange={setSearch} searchPlaceholder="Search..." />
+      <DataView
+        columns={columns}
+        data={list.data}
+        loading={list.isLoading}
+        mode="table"
+        emptyMessage="No items found."
+        page={list.page}
+        totalPages={list.totalPages}
+        onPageChange={list.setPage}
+        rowActions={(row) => (
+          <>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => detailPanel.openPanel("view", row)}>
+              <Eye className="h-4 w-4" />
+            </Button>
+            {!isSuper && (
+              <>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(row)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </>
+        )}
+      />
+
+      {/* View details in modal */}
+      <CrudModal open={detailPanel.open} onOpenChange={() => detailPanel.closePanel()} mode="view" title="Item Details" size="lg">
+        {detailPanel.item && <p>{detailPanel.item.name}</p>}
+      </CrudModal>
+
+      {/* Create / Edit form modal */}
+      <CrudModal open={crud.open} onOpenChange={() => crud.closePanel()} mode={crud.mode} title={crud.mode === "create" ? "Add Item" : "Edit Item"} size="md" onSubmit={handleSubmit} submitting={crud.submitting}>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input id="name" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} required />
+          </div>
         </div>
-      )}
+      </CrudModal>
+
+      <ConfirmDialog open={deleteTarget !== null} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} title="Delete item?" description="This action cannot be undone." confirmLabel="Delete" destructive />
     </div>
   );
 }
@@ -659,9 +752,8 @@ function ItemDetailsPanel({ item }: { item: ItemRecord }) {
 
 4. **Conditional permissions:**
    ```typescript
-   canCreate={!isSuper}
-   canEdit={!isSuper}
-   canDelete={!isSuper}
+   // Show create/edit/delete buttons only for tenant admins:
+   {!isSuper && <Button onClick={openCreate}>+ Add</Button>}
    ```
    - Super admin: read-only
    - Tenant admin: full CRUD
@@ -669,12 +761,12 @@ function ItemDetailsPanel({ item }: { item: ItemRecord }) {
 5. **Conditional columns:**
    - Super admin column set: includes tenant column
    - Tenant admin column set: no tenant column needed
+   - Use array spread: `...(isSuper ? [tenantColumn] : [])`
 
-6. **Conditional subtitle/title:**
-   ```typescript
-   title={isSuper ? "All Pages" : "Pages"}
-   subtitle={isSuper ? "Manage across all tenants" : "Manage your site"}
-   ```
+6. **All interactions via CrudModal — never side panels:**
+   - View details: `detailPanel.openPanel("view", row)` → CrudModal mode="view"
+   - Create: `crud.openPanel("create")` → CrudModal with form
+   - Edit: `crud.openPanel("edit", row)` → CrudModal with pre-filled form
 
 ---
 
@@ -683,19 +775,19 @@ function ItemDetailsPanel({ item }: { item: ItemRecord }) {
 ### Tenants Page
 ```
 /app/admin/tenants/page.tsx
-└── Resource component with full CRUD, plan selector, feature flags panel
+└── DataView + CrudModal (create/edit) + feature flags modal + ConfirmDialog
 ```
 
 ### Media Page
 ```
 /app/admin/media/
-├── page.tsx                    ← Resource + upload section + scope logic
+├── page.tsx                    ← DataView + upload section + CrudModal (view details)
 └── (nothing else - keep it simple!)
 ```
 
 ### Pages Page
 ```
-/app/admin/pages/page.tsx       ← Resource with page-specific columns
+/app/admin/pages/page.tsx       ← DataView + CrudModal (create/edit + view details) + block management
 └── (no separate files - everything inline!)
 ```
 
@@ -795,10 +887,23 @@ import { Collapsible, ... } from "@repo/ui/collapsible";
 import { Progress }         from "@repo/ui/progress";
 import { cn }               from "@repo/ui/cn";
 
+// Admin components (generic, reusable across all admin pages)
+import {
+  DataView, CrudModal, ConfirmDialog, Filter, StatusBadge, InfoCard,
+  EmptyState, LoadingState, Chart, ActivityFeed, AlertBanner,
+  CollapsibleSection, ReadOnlyField, JsonBlock, DetailLayout,
+  ProgressBar, ComponentPageHeader,
+} from "@repo/ui/admin/components";
+import type { Column, CrudMode, CrudModalProps } from "@repo/ui/admin/components";
+
+// Data hooks
+import {
+  useSupabaseList, useSupabaseItem, useSupabaseDelete, useCrudPanel,
+} from "@/hooks/useSupabase";
+
 // Admin layout
 import { Shell }            from "@repo/ui/admin";        // via admin/index
 import { ThemeToggle }      from "@repo/ui/admin/theme-toggle";
-import { PageHeader }       from "@repo/ui/admin/page-header";  // deprecated
 ```
 
 Recharts is a dependency of `@repo/ui` and is available in any package that consumes it:
@@ -814,13 +919,17 @@ When building a new admin feature:
 
 - [ ] Create page at `/app/admin/feature-name/page.tsx`
 - [ ] Use `useTenantAdmin()` to get `tenantId`
-- [ ] Use `Resource<T>` component as base
+- [ ] Use `useSupabaseList` for data fetching with TanStack Query
+- [ ] Use `useCrudPanel` for modal state management
+- [ ] Use `DataView` for table/card display with pagination
+- [ ] Use `CrudModal` for create/edit (form) and view (read-only) modes
+- [ ] Use `ConfirmDialog` for destructive actions
+- [ ] Use `Filter` for search/filter UI
 - [ ] Add `select` prop for joins (if super admin needs scope awareness)
-- [ ] Add `filters` prop for explicit tenant filtering
-- [ ] Conditional `canCreate`/`canEdit`/`canDelete` based on `isSuper`
-- [ ] Conditional `columns` based on `isSuper`
-- [ ] Add side panel with details view (optional)
-- [ ] Inline render functions in columns (no separate Cell files)
+- [ ] Add filters for explicit tenant filtering
+- [ ] Conditional create/edit/delete buttons based on `isSuper`
+- [ ] Conditional columns based on `isSuper`
+- [ ] Use `toast` from sonner for success/error notifications
 - [ ] Verify unique `key` on all columns
 - [ ] Test both super admin and tenant admin views
 
@@ -844,9 +953,9 @@ interface MyRecord extends Record<string, unknown> {
 ```
 
 **Why `extends Record<string, unknown>`?**
-- Required by Refine's `Resource<T>` type constraint
 - Allows arbitrary properties from database joins
 - Required for TypeScript strict mode compatibility
+- Used by `useSupabaseList<T>` and `DataView<T>` generics
 
 ---
 
@@ -854,9 +963,11 @@ interface MyRecord extends Record<string, unknown> {
 
 1. **Simple over clever** - avoid nested abstractions
 2. **Inline patterns** - keep render logic in columns, not separate files
-3. **Reuse Resource** - it's powerful enough for 90% of admin pages
+3. **Reuse DataView + CrudModal** - they handle 90% of admin pages
 4. **Props over magic** - configuration via props, not hardcoding
 5. **Keep features together** - pages/{your feature}/ folder pattern
+6. **Modals over panels** - all interactions via CrudModal, no side panels
+7. **Hooks for data** - useSupabaseList/useCrudPanel, not raw Supabase calls
 
 ---
 
@@ -880,19 +991,19 @@ interface MyRecord extends Record<string, unknown> {
 ### Tenants
 - ✅ Full CRUD (add, edit, delete tenants)
 - ✅ Plan selector (dropdown)
-- ✅ Feature flags side panel
+- ✅ Feature flags modal
 - ✅ Super admin only
 
 ### Pages
 - ✅ Super admin: all pages (read-only) + tenant column
 - ✅ Tenant admin: own pages (full CRUD)
-- ✅ Details side panel with status/metadata
+- ✅ Details modal with status/metadata + block management
 
 ### Media
 - ✅ Super admin: all media (read-only) + tenant column
 - ✅ Tenant admin: own media (can delete) + upload feature
 - ✅ File type badge, size display
-- ✅ Details panel with image preview
+- ✅ Details modal with image preview
 - ✅ Auto-creates bucket on first upload
 - ✅ Media-page associations (PageMediaBlock)
 
@@ -967,8 +1078,10 @@ interface MyRecord extends Record<string, unknown> {
 - Check browser network tab for `/api/admin/metrics/dashboard` response
 
 ### Component/TypeScript issues
-- All `Resource<T>` interfaces must `extend Record<string, unknown>`
+- All record interfaces must `extend Record<string, unknown>`
 - Column `key` props must be unique per table — use `metadata_type` not `metadata` twice
 - `tenantId` from context: `null` = super admin, `number` = tenant admin
 - Always import UI primitives from `@repo/ui/[component]`, not local paths
+- Import admin components from `@repo/ui/admin/components`
+- Import data hooks from `@/hooks/useSupabase`
 

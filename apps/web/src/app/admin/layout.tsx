@@ -8,7 +8,7 @@ import {
   SUPER_ADMIN_CONFIG,
   TENANT_ADMIN_CONFIG,
 } from "@repo/lib/config/dashboardConfig";
-import { AdminSidebar } from "@repo/ui/admin/sidebar";
+import { DashboardLayout } from "@repo/ui/admin";
 import type { NavItem } from "@repo/lib/config/dashboardConfig";
 import { AdminClientWrapper } from "./AdminClientWrapper";
 
@@ -82,10 +82,9 @@ export default async function AdminLayout({
       const bottomNavItems: NavItem[] = [];
 
       return (
-        <AdminClientWrapper tenantId={tenant.id}>
-          <AdminSidebar
+        <AdminClientWrapper tenantId={tenant.id} plan={tenant.plan ?? null}>
+          <DashboardLayout
             navItems={navItems}
-            bottomNavItems={bottomNavItems}
             header={{ title: tenant.name, subtitle: tenant.domain }}
             userEmail={authenticatedUser.email ?? ""}
             signOutHref="/admin/auth/signout"
@@ -93,7 +92,7 @@ export default async function AdminLayout({
             isSuperAdmin={true}
           >
             {children}
-          </AdminSidebar>
+          </DashboardLayout>
         </AdminClientWrapper>
       );
     }
@@ -105,9 +104,8 @@ export default async function AdminLayout({
 
     return (
       <AdminClientWrapper tenantId={null}>
-        <AdminSidebar
+        <DashboardLayout
           navItems={navItems}
-          bottomNavItems={bottomNavItems}
           header={{
             title: "Multisite",
             subtitle: "Super Admin Dashboard",
@@ -120,7 +118,7 @@ export default async function AdminLayout({
           signOutHref="/admin/auth/signout"
         >
           {children}
-        </AdminSidebar>
+        </DashboardLayout>
       </AdminClientWrapper>
     );
   }
@@ -156,17 +154,16 @@ export default async function AdminLayout({
   const bottomNavItems: NavItem[] = [];
 
   return (
-    <AdminClientWrapper tenantId={activeTenant.id}>
-      <AdminSidebar
+    <AdminClientWrapper tenantId={activeTenant.id} plan={activeTenant.plan ?? null}>
+      <DashboardLayout
         navItems={navItems}
-        bottomNavItems={bottomNavItems}
         header={{ title: activeTenant.name, subtitle: activeTenant.domain }}
         userEmail={authenticatedUser.email ?? ""}
         signOutHref="/admin/auth/signout"
         siteUrl="/"
       >
         {children}
-      </AdminSidebar>
+      </DashboardLayout>
     </AdminClientWrapper>
   );
 }

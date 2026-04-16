@@ -91,6 +91,9 @@ export interface Database {
           title: string;
           is_published: boolean;
           is_homepage: boolean;
+          feature_key: string | null;
+          page_type: string;
+          page_config: Json;
           created_at: string;
           updated_at: string;
         };
@@ -101,6 +104,9 @@ export interface Database {
           title: string;
           is_published?: boolean;
           is_homepage?: boolean;
+          feature_key?: string | null;
+          page_type?: string;
+          page_config?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -111,6 +117,9 @@ export interface Database {
           title?: string;
           is_published?: boolean;
           is_homepage?: boolean;
+          feature_key?: string | null;
+          page_type?: string;
+          page_config?: Json;
           created_at?: string;
           updated_at?: string;
         };

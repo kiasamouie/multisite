@@ -42,6 +42,8 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
       "analytics",
       "blog",
       "seo_tools",
+      "services_page",
+      "admin_section",
     ],
     limits: {
       pages: 25,
@@ -67,6 +69,11 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
       "white_label",
       "priority_support",
       "integrations",
+      "services_page",
+      "portfolio_page",
+      "team_page",
+      "events_page",
+      "admin_section",
     ],
     limits: {
       pages: -1, // unlimited

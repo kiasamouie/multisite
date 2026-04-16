@@ -209,11 +209,11 @@ export async function POST(request: Request) {
       for (const pid of associatedPages) {
         await ensurePageMediaBlock(adminSupabase, pid, blockUsageType);
       }
-      revalidateTag("pages");
+      revalidateTag("pages", "max");
     }
 
     // Invalidate media cache so pages re-fetch fresh associations
-    revalidateTag("media");
+    revalidateTag("media", "max");
 
     return NextResponse.json(
       { 

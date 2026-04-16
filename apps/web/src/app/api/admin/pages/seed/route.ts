@@ -186,7 +186,7 @@ export async function POST(request: Request) {
       }
     }
 
-    revalidateTag("pages");
+    revalidateTag("pages", "max");
 
     return NextResponse.json({
       pageId: page.id,

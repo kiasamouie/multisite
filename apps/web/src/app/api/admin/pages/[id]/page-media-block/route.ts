@@ -46,7 +46,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   }
 
   await ensurePageMediaBlock(auth.admin, pageId, usage_type.trim());
-  revalidateTag("pages");
+  revalidateTag("pages", "max");
 
   return NextResponse.json({ success: true });
 }

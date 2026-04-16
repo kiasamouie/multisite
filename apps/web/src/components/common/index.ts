@@ -1,0 +1,50 @@
+// Re-export all generic admin components from @repo/ui
+export {
+  InfoCard,
+  Chart,
+  DataView,
+  Filter,
+  CrudModal,
+  ConfirmDialog,
+  DetailLayout,
+  StatusBadge,
+  EmptyState,
+  LoadingState,
+  ActivityFeed,
+  ReadOnlyField,
+  ComponentPageHeader as PageHeader,
+  CollapsibleSection,
+  AlertBanner,
+  JsonBlock,
+  ProgressBar,
+} from "@repo/ui/admin/components";
+
+export type {
+  InfoCardProps,
+  ChartProps,
+  ChartSeries,
+  DataViewProps,
+  Column,
+  FilterProps,
+  FilterOption,
+  FilterItemConfig,
+  CrudModalProps,
+  CrudMode,
+  CrudModalSize,
+  ConfirmDialogProps,
+  DetailLayoutProps,
+  StatusBadgeProps,
+  EmptyStateProps,
+  LoadingStateProps,
+  ActivityFeedProps,
+  ActivityFeedItem,
+  ReadOnlyFieldProps,
+  PageHeaderProps,
+  AlertBannerProps,
+  JsonBlockProps,
+  JsonBlockVariant,
+  ProgressBarProps,
+} from "@repo/ui/admin/components";
+
+// App-specific generic components
+export { UploadInput } from "./upload-input";

@@ -1,13 +1,22 @@
 /**
  * Tenant Provisioning Service
- * 
+ *
  * Handles automated setup when a new tenant is created:
  * - Creates default feature flags based on plan
- * - Creates template pages for enabled features
+ * - Creates template pages with sections + blocks for enabled features
+ *
+ * Also handles plan changes (upgrade / downgrade):
+ * - Syncs feature flags to match the new plan
+ * - Creates any new template pages unlocked by the plan
+ * - Disables pages for features no longer in the plan
  */
 
 import { createAdminClient } from "../supabase/admin";
-import { getTemplatesForPlan } from "../config/pageTemplates";
+import {
+  getTemplatesForPlan,
+  type PageTemplate,
+} from "../config/pageTemplates";
+import { PLANS, type PlanTier } from "../stripe/plans";
 
 export type ProvisioningResult = {
   success: boolean;
@@ -18,12 +27,60 @@ export type ProvisioningResult = {
 };
 
 /**
- * Provision a new tenant with default pages and feature flags
- * Called immediately after tenant is created
+ * Insert sections and blocks for a page based on its template definition.
+ */
+async function insertSectionsAndBlocks(
+  admin: ReturnType<typeof createAdminClient>,
+  pageId: number,
+  template: PageTemplate,
+  errors: string[]
+): Promise<void> {
+  for (const section of template.sections) {
+    const { data: sectionData, error: sectionError } = await admin
+      .from("sections")
+      .insert({
+        page_id: pageId,
+        type: section.type,
+        position: section.position,
+      })
+      .select("id")
+      .single();
+
+    if (sectionError) {
+      errors.push(
+        `Failed to create section (page ${pageId}, pos ${section.position}): ${sectionError.message}`
+      );
+      continue;
+    }
+
+    if (section.blocks.length > 0) {
+      const blockInserts = section.blocks.map((b) => ({
+        section_id: sectionData.id,
+        type: b.type,
+        content: b.content as Record<string, never>,
+        position: b.position,
+      }));
+
+      const { error: blockError } = await admin
+        .from("blocks")
+        .insert(blockInserts);
+
+      if (blockError) {
+        errors.push(
+          `Failed to create blocks for section ${sectionData.id}: ${blockError.message}`
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Provision a new tenant with default pages and feature flags.
+ * Called immediately after tenant is created.
  */
 export async function provisionTenant(
   tenantId: number,
-  plan: "starter" | "growth" | "pro"
+  plan: PlanTier
 ): Promise<ProvisioningResult> {
   const admin = createAdminClient();
   const errors: string[] = [];
@@ -31,82 +88,157 @@ export async function provisionTenant(
   let pagesCreated = 0;
 
   try {
-    // Step 1: Create feature flags for this tenant based on plan
-    // Read defaults from feature_flag_defaults table
-    const { data: defaults, error: defaultsError } = await admin
-      .from("feature_flag_defaults")
-      .select("key, default_enabled")
-      .eq("plan_tier", plan);
+    // Step 1: Insert feature flags derived directly from the plan config.
+    // We collect all known feature keys from all plans and set each one
+    // to true/false depending on whether this plan includes it.
+    const allKeys = new Set<string>();
+    Object.values(PLANS).forEach((p) => p.features.forEach((f) => allKeys.add(f)));
 
-    if (defaultsError) {
-      errors.push(`Failed to fetch defaults: ${defaultsError.message}`);
-      return { success: false, tenantId, pagesCreated, flagsCreated, errors };
+    const planFeatures = new Set(PLANS[plan].features);
+    const flagInserts = Array.from(allKeys).map((key) => ({
+      tenant_id: tenantId,
+      key,
+      enabled: planFeatures.has(key),
+    }));
+
+    const { error: flagError } = await admin
+      .from("feature_flags")
+      .insert(flagInserts);
+
+    if (flagError) {
+      errors.push(`Failed to create feature flags: ${flagError.message}`);
+    } else {
+      flagsCreated = flagInserts.length;
     }
 
-    if (defaults && defaults.length > 0) {
-      const flagInserts = defaults.map((d) => ({
-        tenant_id: tenantId,
-        key: d.key,
-        enabled: d.default_enabled,
-      }));
-
-      const { error: flagError } = await admin
-        .from("feature_flags")
-        .insert(flagInserts);
-
-      if (flagError) {
-        errors.push(`Failed to create feature flags: ${flagError.message}`);
-      } else {
-        flagsCreated = flagInserts.length;
-      }
-    }
-
-    // Step 2: Create template pages for enabled features
+    // Step 2: Create template pages for features included in this plan.
+    // We derive this directly from the plan's feature set — no extra DB
+    // round-trip needed. The unique index on (tenant_id, feature_key)
+    // prevents duplicates if this is somehow called twice.
     const templates = getTemplatesForPlan(plan);
 
     for (const template of templates) {
-      try {
-        // Only create if feature is in the enabled set
-        const { data: flag, error: flagCheckError } = await admin
-          .from("feature_flags")
-          .select("enabled")
-          .eq("tenant_id", tenantId)
-          .eq("key", template.feature_key)
-          .single();
+      // Only create pages for features actually in this plan
+      if (!planFeatures.has(template.feature_key)) continue;
 
-        if (flagCheckError) {
-          errors.push(
-            `Failed to check flag for ${template.feature_key}: ${flagCheckError.message}`
-          );
-          continue;
+      const { data: pageData, error: pageError } = await admin
+        .from("pages")
+        .insert({
+          tenant_id: tenantId,
+          title: template.title,
+          slug: template.slug,
+          feature_key: template.feature_key,
+          page_type: "template",
+          page_config: {},
+          is_published: true,
+          is_homepage: template.is_homepage ?? false,
+        })
+        .select("id")
+        .single();
+
+      if (pageError) {
+        // 23505 = unique_violation — page already exists, not an error
+        if ((pageError as { code?: string }).code !== "23505") {
+          errors.push(`Failed to create page ${template.key}: ${pageError.message}`);
         }
+      } else {
+        pagesCreated++;
+        // Insert template sections and blocks for the new page
+        await insertSectionsAndBlocks(admin, pageData.id, template, errors);
+      }
+    }
 
-        // Only create page if feature is enabled for this plan
-        if (flag?.enabled !== false) {
-          const { error: pageError } = await admin
-            .from("pages")
-            .insert({
-              tenant_id: tenantId,
-              title: template.title,
-              slug: template.slug,
-              feature_key: template.feature_key,
-              page_type: "template",
-              page_config: template.defaultConfig,
-              is_published: false, // Pages start as draft
-            });
+    return {
+      success: errors.length === 0,
+      tenantId,
+      pagesCreated,
+      flagsCreated,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      tenantId,
+      pagesCreated,
+      flagsCreated,
+      errors: [err instanceof Error ? err.message : String(err)],
+    };
+  }
+}
 
-          if (pageError) {
-            errors.push(
-              `Failed to create page ${template.key}: ${pageError.message}`
-            );
-          } else {
-            pagesCreated++;
-          }
+/**
+ * Sync a tenant's feature flags and template pages to a new plan.
+ * Called when a tenant's plan is upgraded or downgraded — whether triggered
+ * by an admin action or a Stripe subscription event.
+ *
+ * Strategy:
+ * - Upserts ALL known feature flags: enabled = plan includes it
+ * - Creates any template pages newly unlocked by the plan (skips existing ones)
+ * - Does NOT delete pages from demoted features (preserves content), but the
+ *   rendering layer gates visibility via the flag value
+ */
+export async function syncTenantPlan(
+  tenantId: number,
+  newPlan: PlanTier
+): Promise<ProvisioningResult> {
+  const admin = createAdminClient();
+  const errors: string[] = [];
+  let flagsCreated = 0;
+  let pagesCreated = 0;
+
+  try {
+    // Step 1: Upsert every known feature flag to match the new plan.
+    const allKeys = new Set<string>();
+    Object.values(PLANS).forEach((p) => p.features.forEach((f) => allKeys.add(f)));
+
+    const planFeatures = new Set(PLANS[newPlan].features);
+    const flagUpserts = Array.from(allKeys).map((key) => ({
+      tenant_id: tenantId,
+      key,
+      enabled: planFeatures.has(key),
+    }));
+
+    const { error: flagError } = await admin
+      .from("feature_flags")
+      .upsert(flagUpserts, { onConflict: "tenant_id,key" });
+
+    if (flagError) {
+      errors.push(`Failed to sync feature flags: ${flagError.message}`);
+    } else {
+      flagsCreated = flagUpserts.length;
+    }
+
+    // Step 2: Create template pages for features newly available in this plan.
+    // Pages that already exist are silently ignored (unique constraint).
+    const templates = getTemplatesForPlan(newPlan);
+
+    for (const template of templates) {
+      if (!planFeatures.has(template.feature_key)) continue;
+
+      const { data: pageData, error: pageError } = await admin
+        .from("pages")
+        .insert({
+          tenant_id: tenantId,
+          title: template.title,
+          slug: template.slug,
+          feature_key: template.feature_key,
+          page_type: "template",
+          page_config: {},
+          is_published: true,
+          is_homepage: template.is_homepage ?? false,
+        })
+        .select("id")
+        .single();
+
+      if (pageError) {
+        // 23505 = unique_violation — page already exists, fine
+        if ((pageError as { code?: string }).code !== "23505") {
+          errors.push(`Failed to create page ${template.key}: ${pageError.message}`);
         }
-      } catch (err) {
-        errors.push(
-          `Error provisioning ${template.key}: ${err instanceof Error ? err.message : String(err)}`
-        );
+      } else {
+        pagesCreated++;
+        // Insert template sections and blocks for the new page
+        await insertSectionsAndBlocks(admin, pageData.id, template, errors);
       }
     }
 

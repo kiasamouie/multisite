@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  revalidateTag("pages");
+  revalidateTag("pages", "max");
   return NextResponse.json(data);
 }
 
@@ -77,6 +77,6 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
 
   const { error } = await auth.admin.from("blocks").delete().eq("id", blockId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  revalidateTag("pages");
+  revalidateTag("pages", "max");
   return NextResponse.json({ success: true });
 }

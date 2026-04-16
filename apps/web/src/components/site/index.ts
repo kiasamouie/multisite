@@ -1,2 +1,2 @@
-export { SiteNav } from "./SiteNav";
-export { SiteFooter } from "./SiteFooter";
+export { SiteNav } from "./site-nav";
+export { SiteFooter } from "./site-footer";

@@ -57,7 +57,7 @@ export type DashboardConfig = {
 export const SUPER_ADMIN_CONFIG: DashboardConfig = {
   role: "super_admin",
   navItems: [
-    { id: "overview", label: "Overview", href: "/admin", icon: "layout-dashboard" },
+    { id: "dashboard", label: "Dashboard", href: "/admin", icon: "layout-dashboard" },
     { id: "tenants", label: "Tenants", href: "/admin/tenants", icon: "globe" },
     { id: "subscriptions", label: "Subscriptions", href: "/admin/subscriptions", icon: "credit-card" },
     { id: "media", label: "Media", href: "/admin/media", icon: "image" },
