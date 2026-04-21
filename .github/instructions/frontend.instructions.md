@@ -12,6 +12,9 @@ Use this guide when working on React components, pages, user-facing features, st
 1. [FRONTEND_STACK_GUIDE.md](../../documentation/FRONTEND_STACK_GUIDE.md) — React patterns, component patterns, dark mode
 2. [ARCHITECTURE.md](../../documentation/ARCHITECTURE.md) — System design, middleware flow, routing
 
+**Feature-Specific Reading (when working on these areas):**
+- [BOOKING_SYSTEM.md](../../documentation/BOOKING_SYSTEM.md) — When building booking forms, admin pages, or integrating the BookingBlock component
+
 ---
 
 ## 🎯 Critical Rules

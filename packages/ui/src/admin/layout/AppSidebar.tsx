@@ -28,6 +28,7 @@ import {
   Briefcase,
   PenLine,
   Calendar,
+  CalendarCheck,
   BookOpen,
   ChevronRight,
   type LucideIcon,
@@ -48,6 +49,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "briefcase": Briefcase,
   "pen-line": PenLine,
   "calendar": Calendar,
+  "calendar-check": CalendarCheck,
   "book-open": BookOpen,
 };
 

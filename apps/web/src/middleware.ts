@@ -33,10 +33,18 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
-    (pathname.startsWith("/api") && !pathname.startsWith("/api/admin")) ||
     pathname === "/api/admin/media/upload"
   ) {
     return NextResponse.next();
+  }
+
+  // Public API routes (non-admin): inject x-tenant-domain so they can
+  // resolve the tenant without relying on Origin/Referer. Skip auth work
+  // below to keep these endpoints cheap.
+  if (pathname.startsWith("/api") && !pathname.startsWith("/api/admin")) {
+    const headers = new Headers(request.headers);
+    headers.set("x-tenant-domain", normalizedHost);
+    return NextResponse.next({ request: { headers } });
   }
 
   // Inject pathname into request headers for downstream server components

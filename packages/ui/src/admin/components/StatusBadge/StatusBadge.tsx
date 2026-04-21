@@ -19,6 +19,8 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
   assigned:  { bg: "bg-[hsl(var(--primary)/0.1)]",      text: "text-[hsl(var(--primary))]",      border: "border-[hsl(var(--primary)/0.2)]",      glow: "" },
   accepted:  { bg: "bg-[hsl(var(--primary)/0.1)]",      text: "text-[hsl(var(--primary))]",      border: "border-[hsl(var(--primary)/0.2)]",      glow: "" },
   completed: { bg: "bg-[hsl(var(--primary)/0.1)]",      text: "text-[hsl(var(--primary))]",      border: "border-[hsl(var(--primary)/0.2)]",      glow: "shadow-[0_0_12px_hsl(var(--primary)/0.2)]" },
+  confirmed: { bg: "bg-[hsl(var(--success)/0.1)]",      text: "text-[hsl(var(--success))]",      border: "border-[hsl(var(--success)/0.2)]",      glow: "shadow-[0_0_12px_hsl(var(--success)/0.2)]" },
+  noshow:    { bg: "bg-[hsl(var(--muted-foreground)/0.1)]", text: "text-[hsl(var(--muted-foreground))]", border: "border-[hsl(var(--outline-variant)/0.2)]", glow: "" },
   success:   { bg: "bg-[hsl(var(--success)/0.1)]",      text: "text-[hsl(var(--success))]",      border: "border-[hsl(var(--success)/0.2)]",      glow: "shadow-[0_0_12px_hsl(var(--success)/0.2)]" },
   failed:    { bg: "bg-[hsl(var(--destructive)/0.1)]",  text: "text-[hsl(var(--destructive))]",  border: "border-[hsl(var(--destructive)/0.2)]",  glow: "shadow-[0_0_12px_hsl(var(--destructive)/0.2)]" },
   error:     { bg: "bg-[hsl(var(--destructive)/0.1)]",  text: "text-[hsl(var(--destructive))]",  border: "border-[hsl(var(--destructive)/0.2)]",  glow: "shadow-[0_0_12px_hsl(var(--destructive)/0.2)]" },

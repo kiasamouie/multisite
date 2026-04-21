@@ -43,6 +43,7 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
       "blog",
       "seo_tools",
       "services_page",
+      "booking_system",
       "admin_section",
     ],
     limits: {
@@ -73,6 +74,8 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
       "portfolio_page",
       "team_page",
       "events_page",
+      "booking_system",
+      "booking_reminders",
       "admin_section",
     ],
     limits: {

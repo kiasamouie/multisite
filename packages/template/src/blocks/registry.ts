@@ -29,6 +29,7 @@ import { FeaturesListBlock } from "../components/blocks/FeaturesListBlock";
 import { ReviewsCarouselBlock } from "../components/blocks/ReviewsCarouselBlock";
 import { BlogGridBlock } from "../components/blocks/BlogGridBlock";
 import { PageMediaBlock } from "../components/blocks/PageMediaBlock";
+import { BookingBlock } from "../components/blocks/BookingBlock";
 
 export type BlockCategory =
   | "hero"
@@ -66,6 +67,7 @@ const entries: BlockRegistryEntry[] = [
   { type: "opening_hours", label: "Opening Hours", category: "business", description: "Business hours schedule", component: OpeningHoursBlock },
   { type: "faq", label: "FAQ", category: "business", description: "Frequently asked questions", component: FaqBlock },
   { type: "portfolio", label: "Portfolio", category: "business", description: "Project showcase grid", component: PortfolioBlock },
+  { type: "booking_block", label: "Booking / Reservations", category: "business", description: "Let customers book appointments or reserve tables. Works for restaurants, barbers, salons, gyms, and more.", component: BookingBlock },
 
   // ── Social / Community ──
   { type: "testimonials", label: "Testimonials", category: "social", description: "Customer testimonial cards", component: TestimonialsBlock },

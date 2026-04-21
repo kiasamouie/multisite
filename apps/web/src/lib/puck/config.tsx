@@ -294,6 +294,31 @@ const BLOCK_FIELDS: Record<string, Record<string, unknown>> = {
     },
     title: { type: "text", label: "Title" },
   },
+  booking_block: {
+    title: { type: "text", label: "Headline" },
+    subtitle: { type: "textarea", label: "Subtitle" },
+    sectionLabel: { type: "text", label: "Form Section Label" },
+    buttonText: { type: "text", label: "Button Text" },
+    cancelPolicy: { type: "text", label: "Cancel Policy Note" },
+    showPartySize: {
+      type: "radio",
+      label: "Show Party / Group Size",
+      options: [
+        { label: "Yes", value: "true" },
+        { label: "No", value: "false" },
+      ],
+    },
+    availableTimes: {
+      type: "array",
+      label: "Available Times",
+      arrayFields: { time: { type: "text", label: "Time (HH:MM)" } },
+    },
+    address: { type: "text", label: "Address" },
+    phone: { type: "text", label: "Phone" },
+    contactEmail: { type: "text", label: "Contact Email" },
+    backgroundImageUrl: { type: "text", label: "Background Image URL (legacy)" },
+    backgroundImageId: { type: "custom", label: "Background Image", render: null as unknown },
+  },
 };
 
 // ── Default props per block type ──────────────────────────────────────────
@@ -325,6 +350,27 @@ const BLOCK_DEFAULTS: Record<string, Record<string, unknown>> = {
   blog_grid: { title: "Blog", posts: [] },
   features_list: { title: "Features", subtitle: "", features: [] },
   page_media: { usage_type: "hero", display_mode: "single", title: "" },
+  booking_block: {
+    title: "Book Your Visit",
+    subtitle: "Reserve your spot today. We look forward to welcoming you.",
+    sectionLabel: "Secure your booking",
+    buttonText: "Confirm Booking",
+    cancelPolicy: "By confirming, you agree to our 24-hour cancellation policy.",
+    showPartySize: "true",
+    availableTimes: [
+      { time: "18:00" },
+      { time: "18:30" },
+      { time: "19:15" },
+      { time: "20:00" },
+      { time: "20:30" },
+      { time: "21:00" },
+      { time: "21:45" },
+    ],
+    address: "",
+    phone: "",
+    contactEmail: "",
+    backgroundImageUrl: "",
+  },
 };
 
 // ── Build Puck config dynamically from block registry ─────────────────────
@@ -335,6 +381,7 @@ const MEDIA_PICKER_FIELDS = [
   { blockType: "image", fieldKey: "mediaId", mediaType: "image" as const },
   { blockType: "about", fieldKey: "imageId", mediaType: "image" as const },
   { blockType: "video", fieldKey: "mediaId", mediaType: "video" as const },
+  { blockType: "booking_block", fieldKey: "backgroundImageId", mediaType: "image" as const },
 ] as const;
 
 // Content picker placeholder fields — injected at build time with tenantId
@@ -400,7 +447,7 @@ export function buildPuckConfig(tenantId: number): Config {
       },
       business: {
         title: "Business",
-        components: ["services", "team", "stats", "opening_hours", "faq", "portfolio", "features_list"],
+        components: ["services", "team", "stats", "opening_hours", "faq", "portfolio", "features_list", "booking_block"],
       },
       social: {
         title: "Social & Community",

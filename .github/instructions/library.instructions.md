@@ -12,6 +12,9 @@ Use this guide when working on Supabase clients, utilities, configuration, tenan
 1. [ARCHITECTURE.md](../../documentation/ARCHITECTURE.md) — System design and data flow
 2. [CONFIG_DRIVEN_PAGES.md](../../documentation/CONFIG_DRIVEN_PAGES.md) — Feature flags, page templates
 
+**Feature-Specific Reading (when working on these areas):**
+- [BOOKING_SYSTEM.md](../../documentation/BOOKING_SYSTEM.md) — When working with `resend/booking-emails`, email templates, or booking-related utilities
+
 ---
 
 ## 🎯 Critical Rules

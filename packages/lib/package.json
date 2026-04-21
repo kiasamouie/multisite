@@ -19,6 +19,7 @@
     "./flags/defaults": "./src/flags/defaults.ts",
     "./resend/client": "./src/resend/client.ts",
     "./resend/templates": "./src/resend/templates.ts",
+    "./resend/booking-emails": "./src/resend/booking-emails.ts",
     "./validation/schemas": "./src/validation/schemas.ts",
     "./events/track": "./src/events/track.ts",
     "./config/dashboardConfig": "./src/config/dashboardConfig.ts",

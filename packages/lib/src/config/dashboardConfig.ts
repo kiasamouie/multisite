@@ -62,6 +62,7 @@ export const SUPER_ADMIN_CONFIG: DashboardConfig = {
     { id: "dashboard", label: "Dashboard", href: "/admin", icon: "layout-dashboard" },
     { id: "tenants", label: "Tenants", href: "/admin/tenants", icon: "globe" },
     { id: "subscriptions", label: "Subscriptions", href: "/admin/subscriptions", icon: "credit-card" },
+    { id: "bookings", label: "Bookings", href: "/admin/bookings", icon: "calendar-check" },
     { id: "media", label: "Media", href: "/admin/media", icon: "image" },
     { id: "pages", label: "Pages", href: "/admin/pages", icon: "file-text" },
     {
@@ -114,6 +115,7 @@ export const TENANT_ADMIN_CONFIG: DashboardConfig = {
     { id: "dashboard", label: "Dashboard", href: "/admin", icon: "layout-dashboard" },
     { id: "media", label: "Media", href: "/admin/media", icon: "image" },
     { id: "pages", label: "Pages", href: "/admin/pages", icon: "file-text" },
+    { id: "bookings", label: "Bookings", href: "/admin/bookings", icon: "calendar-check", featureFlag: "booking_system", requiredPlan: "growth" },
     {
       id: "content",
       label: "Content",

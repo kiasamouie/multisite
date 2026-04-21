@@ -139,6 +139,7 @@ export interface VideoBlockContent {
   url: string;
   title?: string;
   autoplay?: boolean;
+  mediaId?: number | null;
 }
 
 export interface TwoColumnBlockContent {
