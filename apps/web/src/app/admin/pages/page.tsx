@@ -23,7 +23,8 @@ import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, LayoutTemplate, ExternalLink } from "lucide-react";
+import { buildTenantUrl } from "@/lib/url";
 import { toast } from "sonner";
 
 interface PageRecord extends Record<string, unknown> {
@@ -150,12 +151,30 @@ function PageDetailsContent({ page }: { page: PageRecord }) {
         <ReadOnlyField label="Updated" value={new Date(page.updated_at).toLocaleString()} />
       </div>
 
-      {canUsePuck && (
-        <Button size="sm" variant="outline" className="w-full" onClick={() => router.push(`/admin/pages/${page.id}/edit`)}>
-          <Pencil className="mr-2 h-4 w-4" />
-          Open Visual Editor
-        </Button>
-      )}
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        {canUsePuck && (
+          <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/admin/pages/${page.id}/edit`)}>
+            <LayoutTemplate className="mr-2 h-4 w-4" />
+            Open Visual Editor
+          </Button>
+        )}
+        {(() => {
+          const domain = isSuper
+            ? page.tenants?.domain
+            : typeof window !== "undefined" ? window.location.hostname : undefined;
+          if (!domain) return null;
+          const href = buildTenantUrl(domain, page.is_homepage ? "/" : `/${page.slug}`);
+          return (
+            <Button size="sm" variant="outline" className="flex-1" asChild>
+              <a href={href} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Page
+              </a>
+            </Button>
+          );
+        })()}
+      </div>
 
       {/* Blocks */}
       <div>
@@ -285,7 +304,30 @@ export default function PagesPage() {
 
   const columns: Column<PageRecord>[] = [
     { key: "title", label: "Title", sortable: true },
-    { key: "slug", label: "Slug", sortable: true },
+    {
+      key: "slug",
+      label: "Slug",
+      sortable: true,
+      render: (row) => {
+        const domain = isSuper
+          ? row.tenants?.domain
+          : typeof window !== "undefined" ? window.location.hostname : undefined;
+        const href = domain
+          ? buildTenantUrl(domain, row.is_homepage ? "/" : `/${row.slug}`)
+          : `/${row.slug}`;
+        return (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="font-mono text-xs text-blue-600 hover:underline dark:text-blue-400"
+          >
+            {row.slug}
+          </a>
+        );
+      },
+    },
     {
       key: "is_published",
       label: "Status",
@@ -314,17 +356,6 @@ export default function PagesPage() {
       sortable: true,
       render: (row) => <span className="text-xs text-muted-foreground">{formatDate(row.created_at)}</span>,
     },
-    ...(canUsePuck
-      ? [{
-          key: "id" as const,
-          label: "Editor",
-          render: (row: PageRecord) => (
-            <Link href={`/admin/pages/${row.id}/edit`} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline dark:text-blue-400">
-              <Pencil className="h-3 w-3" /> Edit
-            </Link>
-          ),
-        }]
-      : []),
   ];
 
   return (
@@ -345,7 +376,13 @@ export default function PagesPage() {
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
-        viewHref={(row) => `/admin/pages/${row.id}`}
+        rowActions={canUsePuck ? (row) => (
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Visual Editor" asChild>
+            <Link href={`/admin/pages/${row.id}/edit`}>
+              <LayoutTemplate className="h-4 w-4" />
+            </Link>
+          </Button>
+        ) : undefined}
         canView
         viewModal={{
           title: () => "Page Details",

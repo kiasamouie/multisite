@@ -1,22 +1,28 @@
 "use client";
 
-import { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useMemo } from "react";
 import { Puck } from "@measured/puck";
 import "@measured/puck/puck.css";
-import { puckConfig } from "@/lib/puck/config";
+import "./puck-theme.css";
+import { buildPuckConfig } from "@/lib/puck/config";
 import type { PuckData } from "@/lib/puck/adapter";
+import { buildTenantUrl } from "@/lib/url";
+import { Button } from "@repo/ui/button";
+import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 interface PuckEditorProps {
   pageId: number;
   pageTitle: string;
   initialData: PuckData;
+  tenantId: number;
+  tenantDomain: string;
+  pageSlug: string;
 }
 
-export function PuckEditor({ pageId, pageTitle, initialData }: PuckEditorProps) {
-  const router = useRouter();
-
+export function PuckEditor({ pageId, pageTitle, initialData, tenantId, tenantDomain, pageSlug }: PuckEditorProps) {
+  const puckConfig = useMemo(() => buildPuckConfig(tenantId), [tenantId]);
+  const viewPageUrl = tenantDomain ? buildTenantUrl(tenantDomain, pageSlug) : null;
   const handlePublish = useCallback(
     async (data: PuckData) => {
       try {
@@ -33,22 +39,36 @@ export function PuckEditor({ pageId, pageTitle, initialData }: PuckEditorProps) 
         }
 
         toast.success("Page published successfully");
-        router.refresh();
       } catch {
         toast.error("Network error while saving");
       }
     },
-    [pageId, router]
+    [pageId]
   );
 
   return (
-    <div style={{ height: "100vh" }}>
+    <div className="puck-root" style={{ height: "100vh" }}>
       <Puck
         config={puckConfig}
         data={initialData}
         onPublish={handlePublish}
         headerTitle={pageTitle}
         headerPath={`/admin/pages/${pageId}/edit`}
+        overrides={{
+          headerActions: ({ children }) => (
+            <div className="flex items-center gap-2">
+              {viewPageUrl && (
+                <a href={viewPageUrl} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View Page
+                  </Button>
+                </a>
+              )}
+              {children}
+            </div>
+          ),
+        }}
       />
     </div>
   );

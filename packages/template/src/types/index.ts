@@ -61,6 +61,7 @@ export interface HeroBlockContent {
   ctaText?: string;
   ctaLink?: string;
   backgroundImage?: string;
+  backgroundImageId?: number | null;
 }
 
 export interface ServicesBlockContent {
@@ -76,6 +77,7 @@ export interface AboutBlockContent {
   title: string;
   content: string;
   imageUrl?: string;
+  imageId?: number | null;
 }
 
 export interface ContactBlockContent {
@@ -130,6 +132,7 @@ export interface ImageBlockContent {
   caption?: string;
   width?: number;
   height?: number;
+  mediaId?: number | null;
 }
 
 export interface VideoBlockContent {

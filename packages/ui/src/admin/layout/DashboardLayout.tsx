@@ -59,9 +59,18 @@ function useBreadcrumbs(navItems: NavItem[]) {
   for (let i = 1; i < segments.length; i++) {
     const seg = segments[i];
     const fullPath = "/" + segments.slice(0, i + 1).join("/");
-    const match = navItems.find(
+    // Search flat items and children
+    let match = navItems.find(
       (n) => n.href === fullPath || n.href === `/${seg}`,
     );
+    if (!match) {
+      for (const item of navItems) {
+        match = item.children?.find(
+          (c) => c.href === fullPath || c.href === `/${seg}`,
+        );
+        if (match) break;
+      }
+    }
     const label = match?.label ?? seg.charAt(0).toUpperCase() + seg.slice(1);
     crumbs.push({ label, href: fullPath });
   }

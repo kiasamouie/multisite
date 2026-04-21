@@ -1,0 +1,51 @@
+/*
+ * Puck Editor Theme Overrides
+ *
+ * Strategy: Puck's CSS uses its own custom properties (`--puck-color-*`).
+ * We remap those properties inside `.dark .puck-root` so the entire
+ * editor inherits the site's dark theme. Light mode uses Puck's defaults.
+ *
+ * Exact class names confirmed from Puck 0.20.2 dist/index.css:
+ *   ._PuckHeader_15xnq_1       → background: var(--puck-color-white)
+ *   ._ViewportControls_gejzr_1 → background: var(--puck-color-grey-11)
+ *   ._PuckCanvas_18jay_1       → background: var(--puck-color-grey-11)
+ *   ._Sidebar--left            → background-color: var(--puck-color-grey-12)
+ */
+
+/* ── Dark mode: remap Puck's light palette to dark theme colors ─────── */
+/* next-themes adds class="dark" to <html> */
+.dark .puck-root {
+  /* White / near-white backgrounds → dark surfaces */
+  --puck-color-white: hsl(var(--background));         /* PuckHeader bg, Input bg    */
+  --puck-color-grey-12: hsl(var(--background));       /* Left/right sidebar bg      */
+  --puck-color-grey-11: hsl(var(--muted));            /* Canvas + ViewportControls  */
+  --puck-color-grey-10: hsl(var(--accent));           /* Slightly elevated surface  */
+
+  /* Borders */
+  --puck-color-grey-09: hsl(var(--border));           /* Field borders, dividers    */
+  --puck-color-grey-05: hsl(var(--border));           /* ActionBar separators       */
+
+  /* Text / labels */
+  --puck-color-black: hsl(var(--foreground));         /* PuckHeader main text       */
+  --puck-color-grey-04: hsl(var(--muted-foreground)); /* Field labels               */
+  --puck-color-grey-07: hsl(var(--muted-foreground)); /* Icon fill                  */
+  --puck-color-grey-08: hsl(var(--muted-foreground)); /* ActionBar text             */
+}
+
+/* ── Dark mode: input overrides for elements not using --puck-color-white ── */
+.dark .puck-root input:not([type="checkbox"]):not([type="radio"]),
+.dark .puck-root textarea,
+.dark .puck-root select {
+  background: hsl(var(--input)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* ── Scrollbars (both modes) ────────────────────────────────────────── */
+.puck-root ::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+.puck-root ::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}

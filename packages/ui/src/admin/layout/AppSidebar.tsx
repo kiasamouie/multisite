@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -7,6 +8,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupContent,
 } from "../../components/ui/sidebar";
@@ -19,7 +23,13 @@ import {
   Image,
   FileText,
   Settings,
-  Plus,
+  Users,
+  MessageSquare,
+  Briefcase,
+  PenLine,
+  Calendar,
+  BookOpen,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../../lib/cn";
@@ -33,6 +43,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "image": Image,
   "file-text": FileText,
   "settings": Settings,
+  "users": Users,
+  "message-square": MessageSquare,
+  "briefcase": Briefcase,
+  "pen-line": PenLine,
+  "calendar": Calendar,
+  "book-open": BookOpen,
 };
 
 export interface AppSidebarProps {
@@ -83,6 +99,40 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
 
+  // Auto-open groups whose children include the current path
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    for (const item of navItems) {
+      if (item.children?.some((c) => pathname.startsWith(c.href))) {
+        initial.add(item.id);
+      }
+    }
+    return initial;
+  });
+
+  // Keep groups open when pathname changes to a child
+  useEffect(() => {
+    for (const item of navItems) {
+      if (item.children?.some((c) => pathname.startsWith(c.href))) {
+        setOpenGroups((prev) => {
+          if (prev.has(item.id)) return prev;
+          const next = new Set(prev);
+          next.add(item.id);
+          return next;
+        });
+      }
+    }
+  }, [pathname, navItems]);
+
+  const toggleGroup = (id: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <Sidebar collapsible="icon">
       {/* ── Workspace header ───────────────────────────────────────────── */}
@@ -107,6 +157,81 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
+                // Items with children render as collapsible groups
+                if (item.children && item.children.length > 0) {
+                  const isGroupActive = item.children.some((c) =>
+                    pathname.startsWith(c.href),
+                  );
+                  const isOpen = openGroups.has(item.id);
+                  const Icon = item.icon ? ICON_MAP[item.icon] : undefined;
+
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        tooltip={item.label}
+                        isActive={isGroupActive}
+                        onClick={() => toggleGroup(item.id)}
+                        className={cn(
+                          "rounded-lg transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                          isGroupActive &&
+                            "border-l-2 border-primary bg-sidebar-accent text-sidebar-primary font-medium",
+                        )}
+                      >
+                        {Icon && (
+                          <Icon
+                            className={cn(
+                              "h-4 w-4 transition-colors duration-200",
+                              isGroupActive
+                                ? "text-primary"
+                                : "text-muted-foreground",
+                            )}
+                          />
+                        )}
+                        <span>{item.label}</span>
+                        <ChevronRight
+                          className={cn(
+                            "ml-auto h-4 w-4 transition-transform duration-200",
+                            isOpen && "rotate-90",
+                          )}
+                        />
+                      </SidebarMenuButton>
+                      {isOpen && (
+                        <SidebarMenuSub>
+                          {item.children.map((child) => {
+                            const childActive = pathname.startsWith(child.href);
+                            const ChildIcon = child.icon
+                              ? ICON_MAP[child.icon]
+                              : undefined;
+                            return (
+                              <SidebarMenuSubItem key={child.id}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={childActive}
+                                >
+                                  <Link href={child.href}>
+                                    {ChildIcon && (
+                                      <ChildIcon
+                                        className={cn(
+                                          "h-3.5 w-3.5 transition-colors duration-200",
+                                          childActive
+                                            ? "text-primary"
+                                            : "text-muted-foreground",
+                                        )}
+                                      />
+                                    )}
+                                    <span>{child.label}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                }
+
+                // Regular flat nav items
                 const isActive =
                   item.id === "dashboard" || item.id === "overview"
                     ? pathname === item.href

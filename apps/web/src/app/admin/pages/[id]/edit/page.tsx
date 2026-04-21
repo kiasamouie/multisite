@@ -27,10 +27,10 @@ export default async function EditPage({ params }: EditPageProps) {
   const admin = createAdminClient();
   const isPlatform = await isPlatformAdmin(user.id);
 
-  // Fetch the page with sections + blocks
+  // Fetch the page with sections + blocks + tenant domain
   const { data: page, error } = await admin
     .from("pages")
-    .select("id, title, slug, tenant_id, sections(*, blocks(*))")
+    .select("id, title, slug, is_homepage, tenant_id, sections(*, blocks(*)), tenants(domain)")
     .eq("id", pageId)
     .single();
 
@@ -71,11 +71,18 @@ export default async function EditPage({ params }: EditPageProps) {
 
   const initialData = dbToPuck(typedSections);
 
+  const tenantDomain = ((page as Record<string, unknown>).tenants as { domain: string } | null)?.domain ?? "";
+  const isHomepage = (page as unknown as { is_homepage?: boolean }).is_homepage;
+  const pageSlug = isHomepage ? "/" : `/${page.slug}`;
+
   return (
     <PuckEditor
       pageId={pageId}
       pageTitle={page.title}
       initialData={initialData}
+      tenantId={page.tenant_id}
+      tenantDomain={tenantDomain}
+      pageSlug={pageSlug}
     />
   );
 }

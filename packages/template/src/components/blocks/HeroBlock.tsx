@@ -1,16 +1,22 @@
 import type { HeroBlockContent } from "../../types";
 
+function resolveImageUrl(content: HeroBlockContent): string | undefined {
+  if (content.backgroundImageId) return `/api/media/${content.backgroundImageId}/img`;
+  return content.backgroundImage || undefined;
+}
+
 interface HeroBlockProps {
   content: HeroBlockContent;
 }
 
 export function HeroBlock({ content }: HeroBlockProps) {
+  const bgUrl = resolveImageUrl(content);
   return (
     <section
       className="relative flex min-h-[60vh] items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 px-4 py-20 text-center"
       style={
-        content.backgroundImage
-          ? { backgroundImage: `url(${content.backgroundImage})`, backgroundSize: "cover", backgroundPosition: "center" }
+        bgUrl
+          ? { backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
           : undefined
       }
     >

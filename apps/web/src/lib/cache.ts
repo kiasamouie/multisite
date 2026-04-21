@@ -41,11 +41,9 @@ export const getCachedTenantBySlug = unstable_cache(
 );
 
 /**
- * Cached homepage lookup (by is_homepage flag).
- * Includes feature flag validation for template pages.
+ * Homepage lookup — always fresh from DB so edits appear immediately.
  */
-export const getCachedHomePage = unstable_cache(
-  async (tenantId: number): Promise<Page | null> => {
+export async function getCachedHomePage(tenantId: number): Promise<Page | null> {
     const supabase = createAdminClient();
     const { data: page } = await supabase
       .from("pages")
@@ -89,17 +87,12 @@ export const getCachedHomePage = unstable_cache(
         };
       }),
     } as Page;
-  },
-  ["homepage"],
-  { revalidate: false, tags: ["pages"] }
-);
+}
 
 /**
- * Cached page by slug + tenant.
- * Includes feature flag validation for template pages.
+ * Page by slug + tenant — always fresh from DB so edits appear immediately.
  */
-export const getCachedPage = unstable_cache(
-  async (tenantId: number, slug: string): Promise<Page | null> => {
+export async function getCachedPage(tenantId: number, slug: string): Promise<Page | null> {
     const supabase = createAdminClient();
     const { data: page } = await supabase
       .from("pages")
@@ -143,10 +136,7 @@ export const getCachedPage = unstable_cache(
         };
       }),
     } as Page;
-  },
-  ["page-by-slug"],
-  { revalidate: false, tags: ["pages"] }
-);
+}
 
 /**
  * Page media associations with signed URLs — no cache, always fresh.

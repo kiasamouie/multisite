@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidateTag } from "next/cache";
 import { authenticateRequest, requireTenantMembership } from "@/lib/api-auth";
 import { puckToDb, type PuckData } from "@/lib/puck/adapter";
 
@@ -103,6 +104,9 @@ export async function POST(
       }
     }
   }
+
+  // Invalidate page cache so the tenant site shows fresh content
+  revalidateTag("pages", "max");
 
   return NextResponse.json({ success: true });
 }

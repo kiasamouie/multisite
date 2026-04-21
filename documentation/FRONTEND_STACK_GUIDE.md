@@ -383,6 +383,440 @@ panel.openPanel("edit", tenantRecord);
 
 ---
 
+## Visual Page Editor: Puck Integration
+
+The **Puck editor** (`@measured/puck@0.20.2`) is integrated as the visual page content builder for tenant websites. It provides a drag-and-drop interface for non-technical users to create and edit pages without touching code.
+
+### Overview
+
+**What it is:**
+- React component-based visual editor (MIT-licensed, open-source)
+- Drag-and-drop block placement and reordering
+- Real-time property editing for each block
+- Full undo/redo support
+
+**What it does:**
+- Loads page sections and blocks from the database
+- Converts DB format to Puck's internal format (via `dbToPuck` adapter)
+- Renders 27 available block types in the editor
+- On publish: saves changes back to DB (via `puckToDb` adapter)
+- Triggers page cache invalidation so tenant site shows new content immediately
+
+**Access:**
+- URL: `/admin/pages/[id]/edit`
+- Plan-gated: Only tenant members with admin+ role can access
+- Super admins can edit any tenant's pages
+
+### Architecture: Page Editing Flow
+
+```
+Admin visits /admin/pages/[id]
+    ↓
+Clicks "Open Visual Editor" button (LayoutTemplate icon in rowActions)
+    ↓
+Navigates to /admin/pages/[id]/edit
+    ↓
+Server component fetches:
+  - Page record
+  - All sections and blocks (joined query)
+    ↓
+Server converts DB format to Puck format via dbToPuck()
+    ↓
+Passes initialData to client-side <PuckEditor>
+    ↓
+Puck renders with all 27 block types available
+    ↓
+User edits (drag, add, configure, reorder blocks)
+    ↓
+Clicks "Publish"
+    ↓
+<PuckEditor onPublish> converts Puck format back to DB format via puckToDb()
+    ↓
+POST to /api/admin/pages/[id]/puck with new data
+    ↓
+API deletes old sections+blocks, inserts new ones
+    ↓
+API calls revalidateTag("pages", "max")
+    ↓
+window.location.reload() — full page remount
+    ↓
+Puck re-initialises with fresh DB data, showing published content
+    ↓
+User can navigate to live tenant page at /{slug} to verify changes
+```
+
+### File Structure
+
+| File | Purpose |
+|------|---------|
+| `apps/web/src/app/admin/pages/[id]/edit/page.tsx` | Server component that fetches page + sections/blocks, converts to Puck format, renders editor |
+| `apps/web/src/app/admin/pages/[id]/edit/editor.tsx` | Client component that renders `<Puck>` with editor UI, handles onPublish |
+| `apps/web/src/app/api/admin/pages/[id]/puck/route.ts` | POST handler that saves Puck data to database, invalidates cache |
+| `apps/web/src/lib/puck/adapter.ts` | `dbToPuck()` and `puckToDb()` converters |
+| `apps/web/src/lib/puck/config.tsx` | Puck configuration with all 27 block types, field definitions, defaults |
+
+### Data Format: DB ↔ Puck Conversion
+
+**Puck internal format (PuckData):**
+```typescript
+{
+  content: [
+    {
+      type: "hero_block",
+      props: {
+        id: "uuid-from-db",      // block.id
+        title: "Our Services",    // block.props fields
+        subtitle: "...",
+        // ... other block-specific fields
+      }
+    },
+    {
+      type: "text_block",
+      props: {
+        id: "another-uuid",
+        content: "Rich text...",
+      }
+    },
+    // ... more blocks
+  ],
+  root: {}
+}
+```
+
+**Database format (Sections + Blocks):**
+```typescript
+Section[] = [
+  {
+    id: "section-uuid",
+    position: 0,
+    blocks: [
+      {
+        id: "block-uuid-1",
+        type: "hero_block",
+        props: { title: "Our Services", subtitle: "..." },
+        position: 0
+      },
+      {
+        id: "block-uuid-2",
+        type: "text_block",
+        props: { content: "Rich text..." },
+        position: 1
+      }
+    ]
+  }
+]
+```
+
+**Adapters:**
+
+```typescript
+// packages/lib/src/lib/puck/adapter.ts
+
+// ── Convert DB to Puck ────────────────────
+export function dbToPuck(sections: Section[]): PuckData {
+  const allBlocks = sections
+    .flatMap((section, sIdx) =>
+      section.blocks.map((block, bIdx) => ({
+        ...block,
+        _sectionIndex: sIdx,
+        _blockIndex: bIdx,
+      }))
+    )
+    .sort((a, b) => {
+      if (a._sectionIndex !== b._sectionIndex) {
+        return a._sectionIndex - b._sectionIndex;
+      }
+      return a._blockIndex - b._blockIndex;
+    });
+
+  return {
+    content: allBlocks.map((block) => ({
+      type: block.type,
+      props: { id: block.id, ...block.props },
+    })),
+    root: {},
+  };
+}
+
+// ── Convert Puck to DB ────────────────────
+export function puckToDb(data: PuckData): DbSection[] {
+  // Strips Puck's top-level `id` from props, reorganizes into single "default" section
+  return [
+    {
+      blocks: data.content.map((item, idx) => ({
+        type: item.type,
+        props: (() => {
+          const { id, ...rest } = item.props; // strip `id` prop
+          return rest;
+        })(),
+        position: idx,
+      })),
+    },
+  ];
+}
+```
+
+**Why flatten to one section in DB?**
+Pages store content as a single "default" section with ordered blocks. Sections exist mainly as a container concept; visual significance comes from block types and ordering. This simplifies both the editor and the rendering engine.
+
+### Block Configuration: 27 Available Types
+
+**File:** `apps/web/src/lib/puck/config.tsx`
+
+All 27 block types are dynamically registered in the Puck config, organized into 5 categories:
+
+```typescript
+const BLOCK_DEFAULTS: Record<string, any> = {
+  hero_block: { title: "Hero Title", subtitle: "", cta_text: "Learn More", cta_url: "/" },
+  text_block: { content: "<p>Enter your text here</p>" },
+  image_block: { src: "", alt: "", width: 600, height: 400 },
+  pricing_table_block: { rows: [{ name: "Plan", price: "$0/mo", features: [] }] },
+  // ... 23 more
+};
+
+const BLOCK_FIELDS: Record<string, Field> = {
+  hero_block: {
+    title: { type: "text" },
+    subtitle: { type: "text" },
+    cta_text: { type: "text" },
+    cta_url: { type: "text" },
+  },
+  text_block: {
+    content: { type: "textarea" },
+  },
+  image_block: {
+    src: { type: "text" },
+    alt: { type: "text" },
+    width: { type: "number" },
+    height: { type: "number" },
+  },
+  // ... 24 more, built from BLOCK_REGISTRY types
+};
+
+export const puckConfig: Config = {
+  components: {
+    // Dynamically generated from BLOCK_REGISTRY
+    hero_block: { fields: BLOCK_FIELDS.hero_block, defaultProps: BLOCK_DEFAULTS.hero_block },
+    text_block: { fields: BLOCK_FIELDS.text_block, defaultProps: BLOCK_DEFAULTS.text_block },
+    // ... all 27
+  },
+  categories: {
+    "Hero": ["hero_block", "hero_with_image_block"],
+    "Content": ["text_block", "heading_block", "image_block", ...],
+    "Business": ["pricing_table_block", "faq_block", "contact_form_block", ...],
+    "Social": ["testimonials_block", "social_links_block", "newsletter_block"],
+    "Info": ["address_block", "featured_posts_block", "events_block", ...],
+  },
+};
+```
+
+**Key point:** The config is built once at app startup and passed to Puck. Block fields and defaults are synchronized with the main `BLOCK_REGISTRY` in `packages/template/src/blocks/registry.ts`, so all 27 types are always available in the editor.
+
+### Editor Component: `editor.tsx`
+
+**Location:** `apps/web/src/app/admin/pages/[id]/edit/editor.tsx`
+
+```typescript
+"use client";
+
+import { Puck, type Data as PuckData } from "@measured/puck";
+import "@measured/puck/puck.css";
+import { puckConfig } from "@/lib/puck/config";
+import { puckToDb } from "@/lib/puck/adapter";
+
+interface PuckEditorProps {
+  pageId: string;
+  pageTitle: string;
+  initialData: PuckData;
+}
+
+export default function PuckEditor({ pageId, pageTitle, initialData }: PuckEditorProps) {
+  async function handlePublish(data: PuckData) {
+    const response = await fetch(`/api/admin/pages/${pageId}/puck`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(puckToDb(data)),
+    });
+
+    if (!response.ok) throw new Error("Failed to publish");
+    
+    // ✅ CRITICAL: Full page reload to force Puck re-mount with fresh DB data
+    window.location.reload();
+  }
+
+  return (
+    <div className="relative h-screen w-full">
+      <Puck
+        config={puckConfig}
+        data={initialData}
+        onPublish={handlePublish}
+      />
+    </div>
+  );
+}
+```
+
+**Why `window.location.reload()` not `router.refresh()`?**
+- `router.refresh()` runs server component again, but Puck's internal state is already initialised and ignores new props
+- `window.location.reload()` triggers a full page remount, so Puck re-initialises with fresh data
+- This ensures that after publish, the editor immediately reflects the saved state
+
+### Editor Page: `[id]/edit/page.tsx`
+
+**Location:** `apps/web/src/app/admin/pages/[id]/edit/page.tsx`
+
+Server component that:
+1. Authenticates user (platform admin or tenant member with admin+ role)
+2. Fetches page record
+3. Fetches sections + blocks (joined query for efficiency)
+4. Converts to Puck format via `dbToPuck()`
+5. Renders `<PuckEditor>`
+
+```typescript
+import { notFound } from "next/navigation";
+import { createAdminClient, createServerClient } from "@repo/lib/supabase";
+import { requireTenantMembership } from "@/lib/api-auth";
+import { dbToPuck } from "@/lib/puck/adapter";
+import PuckEditor from "./editor";
+
+export default async function PageEditorRoute({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: pageId } = await params;
+  const { user } = await createServerClient();
+  
+  if (!user) throw new Error("Unauthorized");
+
+  // Fetch page + verify auth
+  const adminClient = createAdminClient();
+  const { data: page } = await adminClient
+    .from("pages")
+    .select("*")
+    .eq("id", pageId)
+    .single();
+
+  if (!page) notFound();
+
+  // Verify: platform admin OR tenant member with admin+ role
+  if (user.user_metadata?.is_platform_admin !== true) {
+    await requireTenantMembership(page.tenant_id, ["admin", "owner"]);
+  }
+
+  // Fetch sections + blocks
+  const { data: sections } = await adminClient
+    .from("sections")
+    .select("*, blocks(*)")
+    .eq("page_id", pageId)
+    .order("position");
+
+  // Convert to Puck format
+  const puckData = dbToPuck(sections || []);
+
+  return (
+    <PuckEditor
+      pageId={pageId}
+      pageTitle={page.title}
+      initialData={puckData}
+    />
+  );
+}
+```
+
+### API Route: POST `/api/admin/pages/[id]/puck`
+
+**Location:** `apps/web/src/app/api/admin/pages/[id]/puck/route.ts`
+
+Handles publishing: receives Puck data, converts to DB format, deletes old sections+blocks, inserts new ones, invalidates cache.
+
+```typescript
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@repo/lib/supabase";
+import { requireTenantMembership } from "@/lib/api-auth";
+import { puckToDb } from "@/lib/puck/adapter";
+import { revalidateTag } from "next/cache";
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: pageId } = await params;
+  const body = await request.json();
+
+  // Auth check (same as page editor)
+  const page = await getPage(pageId);
+  const { user } = await createServerClient();
+  
+  if (!user?.user_metadata?.is_platform_admin) {
+    await requireTenantMembership(page.tenant_id, ["admin", "owner"]);
+  }
+
+  // Delete existing sections+blocks (cascade)
+  await adminClient
+    .from("sections")
+    .delete()
+    .eq("page_id", pageId);
+
+  // Insert new sections+blocks from Puck data
+  const dbSections = puckToDb(body);
+  
+  for (const section of dbSections) {
+    const { data: [newSection] } = await adminClient
+      .from("sections")
+      .insert({ page_id: pageId, position: 0 })
+      .select();
+
+    for (const block of section.blocks) {
+      await adminClient.from("blocks").insert({
+        section_id: newSection.id,
+        type: block.type,
+        props: block.props,
+        position: block.position,
+      });
+    }
+  }
+
+  // ✅ Invalidate page cache so tenant site shows fresh content
+  revalidateTag("pages", "max");
+
+  return NextResponse.json({ success: true });
+}
+```
+
+### CSS Styling in Puck
+
+Puck editor styles are imported via:
+```typescript
+import "@measured/puck/puck.css";
+```
+
+The editor renders in a full-screen container and integrates with the admin layout via the page route's breadcrumb + header.
+
+### Common Patterns & Tips
+
+**1. Adding a new block type:**
+- Define the block in `BLOCK_DEFAULTS` and `BLOCK_FIELDS` in `config.tsx`
+- Add corresponding component to `BLOCK_REGISTRY` in `packages/template/src/blocks/registry.ts`
+- Sync definitions (field names, types, defaults must match)
+
+**2. Debugging block rendering:**
+- Check that block props match the component's expected interface
+- Verify field types in `BLOCK_FIELDS` (e.g., `type: "textarea"` vs `type: "text"`)
+- Use `<JsonBlock data={block.props} />` in detail pages to inspect raw props
+
+**3. Handling rich text fields:**
+- Use `type: "textarea"` for plain multiline text
+- For rich text (HTML), implement a custom `RichTextEditor` field in Puck config
+- Store as JSON/HTML in props, render as `dangerouslySetInnerHTML` (sanitized)
+
+**4. Publishing updates:**
+- Always call `revalidateTag("pages", "max")` after DB changes
+- `window.location.reload()` ensures Puck re-mounts with latest data
+- Without reload, stale prop cache can cause desync between Puck state and DB
+
+---
+
 ## Admin Component Library (`@repo/ui/admin/components`)
 
 Each component lives in its own subdirectory (`ComponentName/ComponentName.tsx` + `ComponentName/index.ts`). Here is the full inventory with usage:
