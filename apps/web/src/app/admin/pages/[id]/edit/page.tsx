@@ -3,6 +3,9 @@ import { redirect, notFound } from "next/navigation";
 import { createServerClient } from "@repo/lib/supabase/server";
 import { createAdminClient } from "@repo/lib/supabase/admin";
 import { isPlatformAdmin } from "@repo/lib/tenant/platform";
+import { getPageMedia } from "@repo/lib/media/resolve";
+import { getSettings } from "@repo/lib/site-settings/read";
+import { paletteToCssVars } from "@repo/lib/theme/palette";
 import { dbToPuck } from "@/lib/puck/adapter";
 import { PuckEditor } from "./editor";
 
@@ -30,7 +33,7 @@ export default async function EditPage({ params }: EditPageProps) {
   // Fetch the page with sections + blocks + tenant domain
   const { data: page, error } = await admin
     .from("pages")
-    .select("id, title, slug, is_homepage, tenant_id, sections(*, blocks(*)), tenants(domain)")
+    .select("id, title, slug, is_homepage, tenant_id, page_type, sections(*, blocks(*)), tenants(domain)")
     .eq("id", pageId)
     .single();
 
@@ -71,9 +74,21 @@ export default async function EditPage({ params }: EditPageProps) {
 
   const initialData = dbToPuck(typedSections);
 
+  // Fetch media associations so the Puck editor preview can render PageMediaBlock
+  const pageMedia = await getPageMedia(pageId);
+
+  // Fetch tenant theme so the Puck editor canvas previews blocks with the
+  // tenant's selected palette (matches the public site at runtime). The
+  // admin chrome around the canvas keeps the user's admin theme intact.
+  const tenantTheme = await getSettings(page.tenant_id, "theme");
+  const tenantThemeVars = paletteToCssVars(tenantTheme?.palette ?? null);
+  const tenantThemeMode = tenantTheme?.mode === "dark" ? "dark" : "light";
+
   const tenantDomain = ((page as Record<string, unknown>).tenants as { domain: string } | null)?.domain ?? "";
   const isHomepage = (page as unknown as { is_homepage?: boolean }).is_homepage;
   const pageSlug = isHomepage ? "/" : `/${page.slug}`;
+  const pageType = (page as unknown as { page_type?: string }).page_type ?? "custom";
+  const isHeader = pageType === "site_header";
 
   return (
     <PuckEditor
@@ -83,6 +98,11 @@ export default async function EditPage({ params }: EditPageProps) {
       tenantId={page.tenant_id}
       tenantDomain={tenantDomain}
       pageSlug={pageSlug}
+      pageMedia={pageMedia}
+      variant={isHeader ? "site_header" : "page"}
+      hideViewPage={isHeader}
+      tenantThemeVars={tenantThemeVars}
+      tenantThemeMode={tenantThemeMode}
     />
   );
 }

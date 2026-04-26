@@ -8,48 +8,242 @@
  * Each entry maps a Stitch component pattern (as it appears in the screen
  * description or component tree) to the block type string used in our
  * BLOCK_REGISTRY and the expected content shape.
+ *
+ * Fields:
+ * - blockType:      Our block-registry type key (e.g. "hero")
+ * - description:    Human-readable description (used in design system MD)
+ * - contentMapping: Stitch field name → our block content key. Used by
+ *                   the parser to translate Stitch component props into
+ *                   our block.content shape.
+ * - imageFields:    List of content keys that hold image URLs/paths.
+ *                   These trigger image download + media-record creation
+ *                   during provisioning. The downstream content keys are
+ *                   replaced with our local media URLs.
  */
-export const STITCH_BLOCK_MAP: Record<
-  string,
-  { blockType: string; description: string }
-> = {
-  // Hero / Promo
-  hero: { blockType: "hero", description: "Full-width hero with title, subtitle, CTA" },
-  "call-to-action": { blockType: "cta", description: "CTA section" },
-  "pricing-table": { blockType: "pricing_table", description: "Pricing tiers" },
+export interface StitchBlockMapping {
+  blockType: string;
+  description: string;
+  contentMapping: Record<string, string>;
+  imageFields: string[];
+}
 
-  // Content
-  "rich-text": { blockType: "rich_text", description: "Freeform text content" },
-  heading: { blockType: "heading", description: "Section heading" },
-  image: { blockType: "image", description: "Single image with caption" },
-  video: { blockType: "video", description: "Embedded video player" },
-  "two-column": { blockType: "two_column", description: "Side-by-side layout" },
+export const STITCH_BLOCK_MAP: Record<string, StitchBlockMapping> = {
+  // ── Hero / Promo ───────────────────────────────────────────────────────
+  hero: {
+    blockType: "hero",
+    description: "Full-width hero with title, subtitle, CTA",
+    contentMapping: {
+      title: "title",
+      headline: "title",
+      subtitle: "subtitle",
+      tagline: "subtitle",
+      ctaText: "ctaText",
+      buttonText: "ctaText",
+      ctaLink: "ctaLink",
+      buttonLink: "ctaLink",
+      backgroundImage: "backgroundImage",
+      image: "backgroundImage",
+    },
+    imageFields: ["backgroundImage"],
+  },
+  "call-to-action": {
+    blockType: "cta",
+    description: "CTA section",
+    contentMapping: {
+      title: "title",
+      subtitle: "subtitle",
+      buttonText: "buttonText",
+      buttonLink: "buttonLink",
+    },
+    imageFields: [],
+  },
+  "pricing-table": {
+    blockType: "pricing_table",
+    description: "Pricing tiers",
+    contentMapping: { title: "title", subtitle: "subtitle", tiers: "tiers" },
+    imageFields: [],
+  },
 
-  // Business
-  services: { blockType: "services", description: "Service cards grid" },
-  team: { blockType: "team", description: "Team member profiles" },
-  statistics: { blockType: "stats", description: "Key numbers and metrics" },
-  "opening-hours": { blockType: "opening_hours", description: "Business hours" },
-  faq: { blockType: "faq", description: "Frequently asked questions" },
-  portfolio: { blockType: "portfolio", description: "Project showcase grid" },
+  // ── Content ────────────────────────────────────────────────────────────
+  "rich-text": {
+    blockType: "rich_text",
+    description: "Freeform text content",
+    contentMapping: { html: "html", content: "html" },
+    imageFields: [],
+  },
+  heading: {
+    blockType: "heading",
+    description: "Section heading",
+    contentMapping: { text: "text", title: "text", level: "level", alignment: "alignment" },
+    imageFields: [],
+  },
+  image: {
+    blockType: "image",
+    description: "Single image with caption",
+    contentMapping: { url: "url", src: "url", alt: "alt", caption: "caption" },
+    imageFields: ["url"],
+  },
+  video: {
+    blockType: "video",
+    description: "Embedded video player",
+    contentMapping: { url: "url", src: "url", title: "title" },
+    imageFields: [],
+  },
+  "two-column": {
+    blockType: "two_column",
+    description: "Side-by-side layout",
+    contentMapping: { leftHtml: "leftHtml", rightHtml: "rightHtml" },
+    imageFields: [],
+  },
 
-  // Social
-  testimonials: { blockType: "testimonials", description: "Customer testimonials" },
-  gallery: { blockType: "gallery", description: "Image gallery grid" },
-  "social-links": { blockType: "social_links", description: "Social media links" },
-  newsletter: { blockType: "newsletter", description: "Email signup form" },
-  reviews: { blockType: "reviews_carousel", description: "Customer review carousel" },
+  // ── Business ───────────────────────────────────────────────────────────
+  services: {
+    blockType: "services",
+    description: "Service cards grid",
+    contentMapping: { title: "title", services: "services", items: "services" },
+    imageFields: [],
+  },
+  team: {
+    blockType: "team",
+    description: "Team member profiles",
+    contentMapping: { title: "title", members: "members", items: "members" },
+    imageFields: [],
+  },
+  statistics: {
+    blockType: "stats",
+    description: "Key numbers and metrics",
+    contentMapping: { title: "title", stats: "stats", items: "stats" },
+    imageFields: [],
+  },
+  "opening-hours": {
+    blockType: "opening_hours",
+    description: "Business hours",
+    contentMapping: { title: "title", hours: "hours" },
+    imageFields: [],
+  },
+  faq: {
+    blockType: "faq",
+    description: "Frequently asked questions",
+    contentMapping: { title: "title", items: "items" },
+    imageFields: [],
+  },
+  portfolio: {
+    blockType: "portfolio",
+    description: "Project showcase grid",
+    contentMapping: { title: "title", projects: "projects", items: "projects" },
+    imageFields: [],
+  },
 
-  // Info
-  about: { blockType: "about", description: "About section with image" },
-  contact: { blockType: "contact", description: "Contact info and form" },
-  map: { blockType: "map", description: "Embedded map location" },
-  events: { blockType: "events_list", description: "Upcoming events listing" },
-  "blog-grid": { blockType: "blog_grid", description: "Blog post cards grid" },
-  features: { blockType: "features_list", description: "Feature list with icons" },
+  // ── Social ─────────────────────────────────────────────────────────────
+  testimonials: {
+    blockType: "testimonials",
+    description: "Customer testimonials",
+    contentMapping: { title: "title", testimonials: "testimonials", items: "testimonials" },
+    imageFields: [],
+  },
+  gallery: {
+    blockType: "gallery",
+    description: "Image gallery grid",
+    contentMapping: { title: "title", images: "images", items: "images" },
+    imageFields: [],
+  },
+  "social-links": {
+    blockType: "social_links",
+    description: "Social media links",
+    contentMapping: { title: "title", links: "links" },
+    imageFields: [],
+  },
+  newsletter: {
+    blockType: "newsletter",
+    description: "Email signup form",
+    contentMapping: { title: "title", subtitle: "subtitle", buttonText: "buttonText" },
+    imageFields: [],
+  },
+  reviews: {
+    blockType: "reviews_carousel",
+    description: "Customer review carousel",
+    contentMapping: { title: "title", reviews: "reviews", items: "reviews" },
+    imageFields: [],
+  },
 
-  // Dynamic
-  "page-media": { blockType: "page_media", description: "Media from DB associations" },
+  // ── Info ───────────────────────────────────────────────────────────────
+  about: {
+    blockType: "about",
+    description: "About section with image",
+    contentMapping: { title: "title", content: "content", imageUrl: "imageUrl", image: "imageUrl" },
+    imageFields: ["imageUrl"],
+  },
+  contact: {
+    blockType: "contact",
+    description: "Contact info and form",
+    contentMapping: {
+      title: "title",
+      subtitle: "subtitle",
+      email: "email",
+      phone: "phone",
+      address: "address",
+      showForm: "showForm",
+    },
+    imageFields: [],
+  },
+  map: {
+    blockType: "map",
+    description: "Embedded map location",
+    contentMapping: { title: "title", address: "address" },
+    imageFields: [],
+  },
+  events: {
+    blockType: "events_list",
+    description: "Upcoming events listing",
+    contentMapping: { title: "title", events: "events" },
+    imageFields: [],
+  },
+  "blog-grid": {
+    blockType: "blog_grid",
+    description: "Blog post cards grid",
+    contentMapping: { title: "title", posts: "posts" },
+    imageFields: [],
+  },
+  features: {
+    blockType: "features_list",
+    description: "Feature list with icons",
+    contentMapping: { title: "title", subtitle: "subtitle", features: "features" },
+    imageFields: [],
+  },
+
+  // ── Food & Beverage ────────────────────────────────────────────────────
+  "menu-category": {
+    blockType: "menu_category",
+    description: "Restaurant menu section with items, prices, and optional featured dish",
+    contentMapping: {
+      title: "title",
+      sectionNumber: "sectionNumber",
+      items: "items",
+      featuredItem: "featuredItem",
+      imageUrl: "imageUrl",
+    },
+    imageFields: ["imageUrl"],
+  },
+  "menu-section": {
+    blockType: "menu_category",
+    description: "Restaurant menu section (alias)",
+    contentMapping: {
+      title: "title",
+      sectionNumber: "sectionNumber",
+      items: "items",
+      featuredItem: "featuredItem",
+      imageUrl: "imageUrl",
+    },
+    imageFields: ["imageUrl"],
+  },
+
+  // ── Dynamic ────────────────────────────────────────────────────────────
+  "page-media": {
+    blockType: "page_media",
+    description: "Media from DB associations",
+    contentMapping: { usageType: "usage_type", displayMode: "display_mode", title: "title" },
+    imageFields: [],
+  },
 };
 
 /**
@@ -89,6 +283,7 @@ Each section maps to one of these block types:
 - **events_list**: Upcoming events cards
 - **blog_grid**: Blog post card grid
 - **features_list**: Feature list with icons and descriptions
+- **menu_category**: Restaurant menu section (items with name, description, price; optional featured dish and category image)
 - **page_media**: Dynamic media from database (usage_type: hero|thumbnail|gallery|background|icon)
 
 ## Design Rules

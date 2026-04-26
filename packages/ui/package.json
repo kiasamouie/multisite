@@ -32,7 +32,11 @@
     "./sidebar": "./src/components/ui/sidebar/index.ts",
     "./progress": "./src/components/ui/progress/index.ts",
     "./toaster": "./src/components/ui/toaster/index.ts",
-    "./admin/components": "./src/admin/components/index.ts"
+    "./admin/components": "./src/admin/components/index.ts",
+    "./universal-picker": "./src/components/UniversalPicker/index.ts",
+    "./video-thumbnail": "./src/components/VideoThumbnail/index.ts",
+    "./slot-items-editor": "./src/components/SlotItemsEditor/index.ts",
+    "./styled-field-editor": "./src/components/StyledFieldEditor/index.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

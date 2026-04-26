@@ -62,7 +62,6 @@ export const SUPER_ADMIN_CONFIG: DashboardConfig = {
     { id: "dashboard", label: "Dashboard", href: "/admin", icon: "layout-dashboard" },
     { id: "tenants", label: "Tenants", href: "/admin/tenants", icon: "globe" },
     { id: "subscriptions", label: "Subscriptions", href: "/admin/subscriptions", icon: "credit-card" },
-    { id: "bookings", label: "Bookings", href: "/admin/bookings", icon: "calendar-check" },
     { id: "media", label: "Media", href: "/admin/media", icon: "image" },
     { id: "pages", label: "Pages", href: "/admin/pages", icon: "file-text" },
     {
@@ -71,11 +70,23 @@ export const SUPER_ADMIN_CONFIG: DashboardConfig = {
       href: "/admin/content",
       icon: "book-open",
       children: [
+        { id: "bookings", label: "Bookings", href: "/admin/bookings", icon: "calendar-check" },
         { id: "team", label: "Team", href: "/admin/content/team", icon: "users" },
         { id: "testimonials", label: "Testimonials", href: "/admin/content/testimonials", icon: "message-square" },
         { id: "portfolio", label: "Portfolio", href: "/admin/content/portfolio", icon: "briefcase" },
         { id: "blog", label: "Blog", href: "/admin/content/blog", icon: "pen-line" },
         { id: "events", label: "Events", href: "/admin/content/events", icon: "calendar" },
+      ],
+    },
+    {
+      id: "platform-settings",
+      label: "Settings",
+      href: "/admin/platform-settings",
+      icon: "settings",
+      children: [
+        { id: "platform-settings-general", label: "General", href: "/admin/platform-settings/general", icon: "sliders-horizontal" },
+        { id: "platform-settings-security", label: "Security", href: "/admin/platform-settings/security", icon: "shield" },
+        { id: "platform-settings-plans", label: "Plans", href: "/admin/platform-settings/plans", icon: "credit-card" },
       ],
     },
   ],
@@ -115,13 +126,13 @@ export const TENANT_ADMIN_CONFIG: DashboardConfig = {
     { id: "dashboard", label: "Dashboard", href: "/admin", icon: "layout-dashboard" },
     { id: "media", label: "Media", href: "/admin/media", icon: "image" },
     { id: "pages", label: "Pages", href: "/admin/pages", icon: "file-text" },
-    { id: "bookings", label: "Bookings", href: "/admin/bookings", icon: "calendar-check", featureFlag: "booking_system", requiredPlan: "growth" },
     {
       id: "content",
       label: "Content",
       href: "/admin/content",
       icon: "book-open",
       children: [
+        { id: "bookings", label: "Bookings", href: "/admin/bookings", icon: "calendar-check", featureFlag: "booking_system", requiredPlan: "growth" },
         { id: "team", label: "Team", href: "/admin/content/team", icon: "users" },
         { id: "testimonials", label: "Testimonials", href: "/admin/content/testimonials", icon: "message-square" },
         { id: "portfolio", label: "Portfolio", href: "/admin/content/portfolio", icon: "briefcase" },
@@ -129,7 +140,19 @@ export const TENANT_ADMIN_CONFIG: DashboardConfig = {
         { id: "events", label: "Events", href: "/admin/content/events", icon: "calendar" },
       ],
     },
-    { id: "settings", label: "Settings", href: "/admin/settings", icon: "settings" },
+    {
+      id: "settings",
+      label: "Settings",
+      href: "/admin/settings",
+      icon: "settings",
+      children: [
+        { id: "settings-theme", label: "Theme & Branding", href: "/admin/settings/theme", icon: "palette" },
+        { id: "settings-navigation", label: "Navigation", href: "/admin/settings/navigation", icon: "navigation" },
+        { id: "settings-header-footer", label: "Header & Footer", href: "/admin/settings/header-footer", icon: "panel-top" },
+        { id: "settings-seo", label: "SEO", href: "/admin/settings/seo", icon: "search" },
+        { id: "settings-advanced", label: "Advanced", href: "/admin/settings/advanced", icon: "code-2" },
+      ],
+    },
   ],
   modules: [
     {

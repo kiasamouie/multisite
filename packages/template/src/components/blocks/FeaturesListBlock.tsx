@@ -1,14 +1,21 @@
 import type { FeaturesListBlockContent } from "../../types";
+import { readStyledText } from "../../lib/content-style";
+import { sectionAttrs, headingAttrs, textAttrs } from "../../lib/styled-block";
 
 export function FeaturesListBlock({ content }: { content: FeaturesListBlockContent }) {
   const features = content.features || [];
+  const title = readStyledText(content.title);
+  const subtitle = readStyledText(content.subtitle);
+  const sec = sectionAttrs("mx-auto max-w-6xl px-6 py-16", content.sectionStyle);
+  const heading = headingAttrs("text-3xl font-bold", title.style);
+  const sub = textAttrs("mt-4 text-lg text-muted-foreground", subtitle.style);
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-16">
-      {(content.title || content.subtitle) && (
+    <section className={sec.className} style={sec.style}>
+      {(title.value || subtitle.value) && (
         <div className="mb-12 text-center">
-          {content.title && <h2 className="text-3xl font-bold">{content.title}</h2>}
-          {content.subtitle && <p className="mt-4 text-lg text-muted-foreground">{content.subtitle}</p>}
+          {title.value && <h2 className={heading.className} style={heading.style}>{title.value}</h2>}
+          {subtitle.value && <p className={sub.className} style={sub.style}>{subtitle.value}</p>}
         </div>
       )}
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">

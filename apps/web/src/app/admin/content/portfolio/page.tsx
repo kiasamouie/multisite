@@ -28,24 +28,38 @@ interface PortfolioItem extends Record<string, unknown> {
   sort_order: number;
   is_active: boolean;
   created_at: string;
+  tenants?: { id: number; name: string };
 }
 
 export default function PortfolioPage() {
   const { tenantId } = useAdmin();
+  const isSuper = tenantId === null;
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [tenantFilter, setTenantFilter] = useState("");
+
+  const tenantList = useSupabaseList<{ id: number; name: string } & Record<string, unknown>>({
+    resource: "tenants",
+    select: "id, name",
+    enabled: isSuper,
+    pageSize: 200,
+  });
 
   const filters = useMemo<SupabaseFilter[]>(() => {
     const f: SupabaseFilter[] = [];
-    if (tenantId) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (!isSuper) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (isSuper && tenantFilter) f.push({ field: "tenant_id", operator: "eq", value: Number(tenantFilter) });
     if (search) f.push({ field: "title", operator: "contains", value: search });
+    if (statusFilter !== "") f.push({ field: "is_active", operator: "eq", value: statusFilter === "active" });
     return f;
-  }, [tenantId, search]);
+  }, [tenantId, isSuper, search, statusFilter, tenantFilter]);
 
   const list = useSupabaseList<PortfolioItem>({
     resource: "portfolio_items",
+    select: isSuper ? "*, tenants(id, name)" : "*",
     filters,
     sorters: [{ field: "sort_order", order: "asc" }],
-    enabled: !!tenantId,
+    enabled: true,
   });
 
   const crud = useCrudPanel<PortfolioItem>();
@@ -53,6 +67,11 @@ export default function PortfolioPage() {
   const columns: Column<PortfolioItem>[] = [
     { key: "title", label: "Title", sortable: true },
     { key: "category", label: "Category", render: (v) => v?.category || "—" },
+    ...(isSuper ? [{
+      key: "tenants" as keyof PortfolioItem & string,
+      label: "Tenant",
+      render: (v: PortfolioItem) => <span className="text-xs">{v.tenants?.name ?? "—"}</span>,
+    }] : []),
     { key: "sort_order", label: "Order" },
     {
       key: "is_active",
@@ -124,10 +143,40 @@ export default function PortfolioPage() {
         loading={list.isLoading}
         mode="table"
         emptyMessage="No portfolio items found."
-        filter={{ search, onSearchChange: setSearch, searchPlaceholder: "Search by title\u2026" }}
+        filter={{
+          search,
+          onSearchChange: setSearch,
+          searchPlaceholder: "Search by title\u2026",
+          filters: [
+            ...(isSuper ? [{
+              type: "combobox" as const,
+              label: "Tenant",
+              value: tenantFilter,
+              onChange: setTenantFilter,
+              options: tenantList.data.map(t => ({ value: String(t.id), label: String(t.name) })),
+              placeholder: "All tenants",
+              searchPlaceholder: "Search tenants…",
+              width: "200px",
+            }] : []),
+            {
+              type: "chips" as const,
+              inline: true,
+              value: statusFilter,
+              onChange: setStatusFilter,
+              options: [
+                { value: "active",   label: "Active",   color: { bg: "hsl(var(--success)/0.1)", text: "hsl(var(--success))", border: "hsl(var(--success)/0.2)" } },
+                { value: "inactive", label: "Inactive" },
+              ],
+            },
+          ],
+          hasFilters: search !== "" || statusFilter !== "" || tenantFilter !== "",
+          onClear: () => { setSearch(""); setStatusFilter(""); setTenantFilter(""); },
+        }}
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        pageSize={list.pageSize}
+        onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
         onRefresh={() => list.invalidate()}
         onRowClick={(item) => crud.openPanel("edit", item)}
         canDelete

@@ -2,11 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authenticateRequest, requireTenantMembership } from "@/lib/api-auth";
 
 /**
- * GET /api/admin/media/picker?tenantId=N&mediaType=image|video
+ * GET /api/admin/media/picker?tenantId=N&mediaType=image|video&tag=hero
  *
  * Lightweight media list for the Puck editor media picker.
  * Returns { id, filename, metadata } for all media belonging to a tenant.
  * Optionally filters by mediaType (image or video) using metadata.mime_type.
+ * Optionally filters by tag — returns only media that include the given tag.
  * URLs use the permanent proxy: /api/media/{id}/img
  */
 export async function GET(request: NextRequest) {
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   const mediaType = request.nextUrl.searchParams.get("mediaType"); // "image" | "video" | null
+  const tagFilter = request.nextUrl.searchParams.get("tag"); // single tag to filter by
 
   // Check membership unless platform admin
   if (!auth.isPlatform) {
@@ -31,11 +33,18 @@ export async function GET(request: NextRequest) {
     if (!check.allowed) return check.response!;
   }
 
-  const { data, error } = await auth.admin
+  let query = auth.admin
     .from("media")
-    .select("id, filename, metadata")
+    .select("id, filename, metadata, tags")
     .eq("tenant_id", tid)
     .order("created_at", { ascending: false });
+
+  // Filter by tag using array containment if specified
+  if (tagFilter) {
+    query = (query as typeof query).contains("tags" as never, [tagFilter] as never);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -61,6 +70,7 @@ export async function GET(request: NextRequest) {
     filename: m.filename,
     url: `/api/media/${m.id}/img`,
     metadata: m.metadata,
+    tags: (m as typeof m & { tags?: string[] }).tags ?? [],
   }));
 
   return NextResponse.json({ items });

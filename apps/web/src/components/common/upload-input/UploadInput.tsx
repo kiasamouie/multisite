@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { useAdmin } from "@/context/admin-context";
 import { Button } from "@repo/ui/button";
+import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import {
   Select,
@@ -11,14 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/select";
+import { Badge } from "@repo/ui/badge";
 import { ScrollArea } from "@repo/ui/scroll-area";
+import { X } from "lucide-react";
 import { cn } from "@repo/ui/cn";
-
-interface PageOption {
-  id: number;
-  title: string;
-  slug: string;
-}
 
 interface TenantOption {
   id: number;
@@ -27,14 +24,13 @@ interface TenantOption {
 }
 
 interface UploadInputProps {
-  onUploadComplete?: (filename: string, url: string, mediaId?: number, pageIds?: number[]) => void;
+  onUploadComplete?: (filename: string, url: string, mediaId?: number) => void;
   onError?: (error: string) => void;
 }
 
 /**
- * Media upload input with page association support.
- * Allows uploading files and associating them with one or more pages.
- * Page associations are optional - media can be uploaded without association.
+ * Media upload input with optional tags support.
+ * Allows uploading files and tagging them for filtering in media pickers.
  * Super admins can target any tenant via a tenant selector.
  */
 export function UploadInput({ onUploadComplete, onError }: UploadInputProps) {
@@ -44,10 +40,8 @@ export function UploadInput({ onUploadComplete, onError }: UploadInputProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [pages, setPages] = useState<PageOption[]>([]);
-  const [loadingPages, setLoadingPages] = useState(false);
-  const [selectedPages, setSelectedPages] = useState<number[]>([]);
-  const [usageType, setUsageType] = useState("general");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Super admin only
@@ -69,25 +63,30 @@ export function UploadInput({ onUploadComplete, onError }: UploadInputProps) {
       .finally(() => setLoadingTenants(false));
   }, [isSuper]);
 
-  // Load pages whenever the effective tenant changes
-  useEffect(() => {
-    if (!effectiveTenantId) return;
-    setPages([]);
-    setSelectedPages([]);
-    setLoadingPages(true);
-    fetch(`/api/admin/pages?tenantId=${effectiveTenantId}&fields=id,title,slug`)
-      .then((r) => r.json())
-      .then((data) => setPages(data.pages || []))
-      .catch((err) => console.error("Failed to load pages:", err))
-      .finally(() => setLoadingPages(false));
-  }, [effectiveTenantId]);
+  const addTag = (raw: string) => {
+    const trimmed = raw.trim().toLowerCase().replace(/\s+/g, "-");
+    if (!trimmed) return;
+    // Split by comma in case user pastes multiple
+    const parts = trimmed.split(",").map((t) => t.trim()).filter(Boolean);
+    setTags((prev) => {
+      const next = [...prev];
+      for (const p of parts) {
+        if (!next.includes(p)) next.push(p);
+      }
+      return next;
+    });
+    setTagInput("");
+  };
 
-  const stageFile = (file: File) => {
-    if (file.size > 100 * 1024 * 1024) {
-      onError?.("File must be less than 100MB");
-      return;
+  const removeTag = (tag: string) => setTags((prev) => prev.filter((t) => t !== tag));
+
+  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === "Backspace" && tagInput === "" && tags.length > 0) {
+      setTags((prev) => prev.slice(0, -1));
     }
-    setPendingFiles((prev) => [...prev, file]);
   };
 
   const stageFiles = (files: FileList) => {
@@ -121,11 +120,8 @@ export function UploadInput({ onUploadComplete, onError }: UploadInputProps) {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("tenantId", String(effectiveTenantId));
-
-        // Add page associations if selected
-        if (selectedPages.length > 0) {
-          formData.append("pageIds", JSON.stringify(selectedPages));
-          formData.append("usageType", usageType);
+        if (tags.length > 0) {
+          formData.append("tags", JSON.stringify(tags));
         }
 
         const response = await fetch("/api/admin/media/upload", {
@@ -138,15 +134,15 @@ export function UploadInput({ onUploadComplete, onError }: UploadInputProps) {
           throw new Error(error.message || "Upload failed");
         }
 
-        const { filename, url, mediaId, associatedPages } = await response.json();
-        onUploadComplete?.(filename, url, mediaId, associatedPages);
+        const { filename, url, mediaId } = await response.json();
+        onUploadComplete?.(filename, url, mediaId);
       }
 
       // Reset form
       if (inputRef.current) inputRef.current.value = "";
       setPendingFiles([]);
-      setSelectedPages([]);
-      setUsageType("general");
+      setTags([]);
+      setTagInput("");
     } catch (error) {
       onError?.(error instanceof Error ? error.message : "Upload failed");
     } finally {
@@ -173,14 +169,6 @@ export function UploadInput({ onUploadComplete, onError }: UploadInputProps) {
     setDragActive(false);
     const files = e.dataTransfer.files;
     if (files) stageFiles(files);
-  };
-
-  const togglePageSelection = (pageId: number) => {
-    setSelectedPages((prev) =>
-      prev.includes(pageId)
-        ? prev.filter((id) => id !== pageId)
-        : [...prev, pageId]
-    );
   };
 
   return (
@@ -213,81 +201,41 @@ export function UploadInput({ onUploadComplete, onError }: UploadInputProps) {
         </div>
       )}
 
-      {/* Page Association (Optional) */}
-      <div className="w-full rounded-md border border-border bg-muted/30 p-3 sm:p-4">
-        <h4 className="mb-3 text-sm font-medium text-foreground">
-          Associate with Pages (Optional)
-        </h4>
-
-        <div className="w-full space-y-3">
-          {/* Usage Type Selector */}
-          <div className="w-full space-y-1">
-            <Label className="text-xs font-medium">Usage Type</Label>
-            <Select
-              value={usageType}
-              onValueChange={(val) => {
-                setUsageType(val);
-                if (val !== "pages") setSelectedPages([]);
-              }}
-              disabled={uploading}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="general">General</SelectItem>
-                <SelectItem value="hero">Hero Image</SelectItem>
-                <SelectItem value="thumbnail">Thumbnail</SelectItem>
-                <SelectItem value="gallery">Gallery</SelectItem>
-                <SelectItem value="background">Background</SelectItem>
-                <SelectItem value="icon">Icon</SelectItem>
-                <SelectItem value="pages">Pages</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Pages List — only shown when usage type is "pages" */}
-          {usageType === "pages" && (
-            <div className="w-full space-y-1">
-              <Label className="text-xs font-medium">Select Pages</Label>
-              {isSuper && !selectedTenantId ? (
-                <p className="pt-1 text-xs text-muted-foreground">Select a tenant above to see its pages.</p>
-              ) : loadingPages ? (
-                <p className="pt-1 text-xs text-muted-foreground">Loading pages...</p>
-              ) : pages.length === 0 ? (
-                <p className="pt-1 text-xs text-muted-foreground">
-                  No pages available. Create a page first.
-                </p>
-              ) : (
-                <ScrollArea className="mt-1 h-40 w-full rounded-md border border-border bg-background">
-                  {pages.map((page) => (
-                    <label
-                      key={page.id}
-                      className="flex cursor-pointer items-center gap-2 border-b border-border px-2 py-2 last:border-b-0 hover:bg-accent"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedPages.includes(page.id)}
-                        onChange={() => togglePageSelection(page.id)}
-                        disabled={uploading}
-                        className="h-4 w-4 shrink-0 rounded border-border accent-primary disabled:opacity-50"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm text-foreground">{page.title}</div>
-                        <div className="truncate text-xs text-muted-foreground">/{page.slug}</div>
-                      </div>
-                    </label>
-                  ))}
-                </ScrollArea>
-              )}
-              {selectedPages.length > 0 && (
-                <p className="text-xs text-primary">
-                  {selectedPages.length} page{selectedPages.length !== 1 ? "s" : ""} selected
-                </p>
-              )}
-            </div>
+      {/* Tags Input */}
+      <div className="w-full space-y-1.5">
+        <Label className="text-xs font-medium">Tags (optional)</Label>
+        <div
+          className={cn(
+            "flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm",
+            "focus-within:ring-1 focus-within:ring-ring"
           )}
+          onClick={() => document.getElementById("tag-input")?.focus()}
+        >
+          {tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="gap-1 px-2 py-0.5 text-xs font-normal">
+              {tag}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
+                disabled={uploading}
+                className="ml-0.5 rounded-full opacity-60 hover:opacity-100"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          <Input
+            id="tag-input"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleTagKeyDown}
+            onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
+            disabled={uploading}
+            placeholder={tags.length === 0 ? "Add tags… (Enter or comma to add)" : ""}
+            className="h-auto min-w-20 flex-1 border-none bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
+          />
         </div>
+        <p className="text-xs text-muted-foreground">e.g. hero, background, thumbnail — use to filter in media pickers</p>
       </div>
 
       {/* Upload Zone */}
@@ -312,6 +260,7 @@ export function UploadInput({ onUploadComplete, onError }: UploadInputProps) {
           disabled={uploading}
           className="hidden"
           id="media-upload"
+          multiple
         />
         {pendingFiles.length > 0 ? (
           <div className="space-y-2">

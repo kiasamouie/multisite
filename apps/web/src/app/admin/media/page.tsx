@@ -15,12 +15,10 @@ import {
 import type { Column } from "@repo/ui/admin/components";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import {
-  ExternalLink, Download, Copy,
+import { Download, Copy,
   FileText, FileAudio, FileVideo, File,
 } from "lucide-react";
 import { toast } from "sonner";
-import { buildTenantUrl } from "@/lib/url";
 
 interface MediaRecord extends Record<string, unknown> {
   id: number;
@@ -29,14 +27,8 @@ interface MediaRecord extends Record<string, unknown> {
   filename: string;
   metadata: Record<string, unknown>;
   created_at: string;
+  tags?: string[];
   tenants?: { id: number; name: string; domain: string };
-  media_page_associations?: Array<{
-    id: number;
-    media_id: number;
-    page_id: number;
-    usage_type: string;
-    pages?: { id: number; title: string; slug: string };
-  }>;
 }
 
 function formatDate(v: unknown): string {
@@ -52,24 +44,14 @@ function formatSize(metadata: Record<string, unknown> | undefined): string {
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(1)} KB`;
 }
 
-type DetailAssoc = {
-  id: number;
-  page_id: number;
-  usage_type: string;
-  pages: { id: number; title: string; slug: string; tenants: { domain: string } | null } | null;
-};
-
 function MediaDetailsContent({ item: m }: { item: MediaRecord }) {
   const { tenantId } = useAdmin();
   const isSuper = tenantId === null;
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [detailAssociations, setDetailAssociations] = useState<DetailAssoc[] | null>(null);
 
   useEffect(() => {
     setSignedUrl(null);
-    setDetailAssociations(null);
     fetch(`/api/admin/media/${m.id}/download`).then((r) => r.json()).then((d) => setSignedUrl(d.url ?? null)).catch(() => null);
-    fetch(`/api/admin/media/${m.id}/associations`).then((r) => r.json()).then((d: DetailAssoc[]) => setDetailAssociations(d)).catch(() => null);
   }, [m.id]);
 
   const meta = (m.metadata as Record<string, unknown>) ?? {};
@@ -140,36 +122,17 @@ function MediaDetailsContent({ item: m }: { item: MediaRecord }) {
         </div>
       </div>
 
-      {/* Page associations */}
-      <div>
-        <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Used on Pages</h3>
-        {detailAssociations === null ? (
-          <p className="text-xs text-muted-foreground">Loading…</p>
-        ) : detailAssociations.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Not used on any pages.</p>
-        ) : (
-          <div className="divide-y divide-border/30 rounded-xl border border-border/40">
-            {detailAssociations.map((assoc) => {
-              const page = assoc.pages;
-              if (!page) return null;
-              const domain = page.tenants?.domain;
-              const href = domain ? buildTenantUrl(domain, `/${page.slug}`) : `/${page.slug}`;
-              const label = domain ? `${domain}/${page.slug}` : `/${page.slug}`;
-              return (
-                <a key={assoc.id} href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50">
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 min-w-0">
-                    <span className="block truncate text-xs font-medium">{page.title}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{label}</span>
-                  </span>
-                  <Badge variant="secondary" className="shrink-0 text-[10px]">{assoc.usage_type}</Badge>
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                </a>
-              );
-            })}
+      {/* Tags */}
+      {(m.tags ?? []).length > 0 && (
+        <div>
+          <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tags</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {(m.tags ?? []).map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -181,19 +144,30 @@ export default function MediaPage() {
 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [tenantFilter, setTenantFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
+
+  const tenantList = useSupabaseList<{ id: number; name: string } & Record<string, unknown>>({
+    resource: "tenants",
+    select: "id, name",
+    enabled: isSuper,
+    pageSize: 200,
+  });
 
   const filters = useMemo<SupabaseFilter[]>(() => {
     const f: SupabaseFilter[] = [];
     if (!isSuper) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
     if (search.trim()) f.push({ field: "filename", operator: "contains", value: search });
+    if (isSuper && tenantFilter) f.push({ field: "tenant_id", operator: "eq", value: Number(tenantFilter) });
     return f;
-  }, [tenantId, isSuper, search]);
+  }, [tenantId, isSuper, search, tenantFilter]);
 
   const list = useSupabaseList<MediaRecord>({
     resource: "media",
     select: isSuper
-      ? "*, tenants(id, name, domain), media_page_associations(id, media_id, page_id, usage_type, pages(id, title, slug))"
-      : "*, media_page_associations(id, media_id, page_id, usage_type, pages(id, title, slug))",
+      ? "*, tenants(id, name, domain)"
+      : "*",
     filters,
   });
 
@@ -223,29 +197,45 @@ export default function MediaPage() {
     {
       key: "metadata" as keyof MediaRecord & string,
       label: "Type",
+      sortable: true,
+      sortValue: (row) => row.metadata?.type ? String(row.metadata.type) : "unknown",
       render: (row) => {
         const type = row.metadata?.type ? String(row.metadata.type) : "unknown";
-        return <Badge variant="outline" className="capitalize">{type}</Badge>;
+        const colorMap: Record<string, string> = {
+          image:    "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
+          video:    "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400",
+          audio:    "border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400",
+          document: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+        };
+        return (
+          <Badge variant="outline" className={`capitalize ${colorMap[type] ?? "border-border bg-muted text-muted-foreground"}`}>{type}</Badge>
+        );
+      },
+    },
+    {
+      key: "tags" as keyof MediaRecord & string,
+      label: "Tags",
+      render: (row) => {
+        const t = row.tags ?? [];
+        if (t.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {t.slice(0, 3).map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">{tag}</Badge>
+            ))}
+            {t.length > 3 && <span className="text-[10px] text-muted-foreground">+{t.length - 3}</span>}
+          </div>
+        );
       },
     },
     {
       key: "url" as keyof MediaRecord & string,
       label: "Size",
+      sortable: true,
+      sortValue: (row) => (row.metadata?.size ? Number(row.metadata.size) : 0),
       render: (row) => (
         <span className="text-xs text-muted-foreground whitespace-nowrap">{formatSize(row.metadata)}</span>
       ),
-    },
-    {
-      key: "media_page_associations" as keyof MediaRecord & string,
-      label: "Usage",
-      render: (row) => {
-        const assoc = row.media_page_associations ?? [];
-        if (assoc.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
-        const usageType = String(assoc[0]?.usage_type ?? "general");
-        const label = usageType.charAt(0).toUpperCase() + usageType.slice(1);
-        const extra = assoc.length > 1 ? ` +${assoc.length - 1}` : "";
-        return <span className="text-xs whitespace-nowrap">{label}{extra}</span>;
-      },
     },
     ...(isSuper
       ? [{
@@ -284,15 +274,63 @@ export default function MediaPage() {
 
       <DataView
         columns={columns}
-        data={list.data}
+        data={list.data.filter((r) => {
+          if (typeFilter && String(r.metadata?.type ?? "") !== typeFilter) return false;
+          if (tagFilter && !(r.tags ?? []).includes(tagFilter)) return false;
+          return true;
+        })}
         loading={list.isLoading}
-        onRefresh={() => { list.invalidate(); toast.info("Refreshed", { duration: 1500 }); }}
-        filter={{ search, onSearchChange: setSearch, searchPlaceholder: "Search by filename\u2026" }}
+        onRefresh={list.invalidate}
+        filter={{
+          search,
+          onSearchChange: setSearch,
+          searchPlaceholder: "Search by filename…",
+          filters: [
+            ...( isSuper ? [{
+              type: "combobox" as const,
+              label: "Tenant",
+              value: tenantFilter,
+              onChange: setTenantFilter,
+              options: tenantList.data.map(t => ({ value: String(t.id), label: String(t.name) })),
+              placeholder: "All tenants",
+              searchPlaceholder: "Search tenants…",
+              width: "200px",
+            }] : []),
+            {
+              type: "chips" as const,
+              inline: true,
+              value: typeFilter,
+              onChange: setTypeFilter,
+              options: [
+                { value: "image",    label: "Image" },
+                { value: "video",    label: "Video" },
+                { value: "audio",    label: "Audio" },
+                { value: "document", label: "Document" },
+              ],
+            },
+            {
+              type: "combobox" as const,
+              label: "Tag",
+              value: tagFilter,
+              onChange: setTagFilter,
+              options: Array.from(
+                new Set(list.data.flatMap((r) => r.tags ?? []))
+              ).sort().map((t) => ({ value: t, label: t })),
+              placeholder: "All tags",
+              searchPlaceholder: "Search tags…",
+              width: "160px",
+            },
+          ],
+          hasFilters: search !== "" || tenantFilter !== "" || typeFilter !== "" || tagFilter !== "",
+          onClear: () => { setSearch(""); setTenantFilter(""); setTypeFilter(""); setTagFilter(""); },
+        }}
         mode="table"
         emptyMessage="No media files found."
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        pageSize={list.pageSize}
+        onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
         viewHref={(row) => `/admin/media/${row.id}`}
         canView
         viewModal={{

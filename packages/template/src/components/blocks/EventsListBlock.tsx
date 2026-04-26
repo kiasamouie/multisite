@@ -1,11 +1,32 @@
+"use client";
+
 import type { EventsListBlockContent } from "../../types";
+import { useLibraryContent } from "../../renderer/PageContext";
+import { readStyledText } from "../../lib/content-style";
+import { sectionAttrs, headingAttrs } from "../../lib/styled-block";
 
 export function EventsListBlock({ content }: { content: EventsListBlockContent }) {
-  const events = content.events || [];
+  const { getItems } = useLibraryContent();
+  const libraryRows = getItems("events", content.eventIds);
+  const events =
+    libraryRows.length > 0
+      ? libraryRows.map((r) => ({
+          name: String(r.name ?? ""),
+          date: String(r.date ?? ""),
+          venue: (r.venue as string | null) ?? undefined,
+          city: (r.city as string | null) ?? undefined,
+          ticketUrl: (r.ticket_url as string | null) ?? undefined,
+          description: (r.description as string | null) ?? undefined,
+        }))
+      : content.events || [];
+
+  const title = readStyledText(content.title);
+  const sec = sectionAttrs("mx-auto max-w-4xl px-6 py-16", content.sectionStyle);
+  const heading = headingAttrs("mb-10 text-center text-3xl font-bold", title.style);
 
   return (
-    <section className="mx-auto max-w-4xl px-6 py-16">
-      {content.title && <h2 className="mb-10 text-center text-3xl font-bold">{content.title}</h2>}
+    <section className={sec.className} style={sec.style}>
+      {title.value && <h2 className={heading.className} style={heading.style}>{title.value}</h2>}
       <div className="space-y-4">
         {events.map((e, i) => (
           <div key={i} className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between">

@@ -30,7 +30,15 @@ import {
   Calendar,
   CalendarCheck,
   BookOpen,
+  LayoutTemplate,
+  PanelTop,
   ChevronRight,
+  Palette,
+  Navigation,
+  Search,
+  Code2,
+  SlidersHorizontal,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../../lib/cn";
@@ -51,6 +59,14 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "calendar": Calendar,
   "calendar-check": CalendarCheck,
   "book-open": BookOpen,
+  "layout-template": LayoutTemplate,
+  "panel-top": PanelTop,
+  "palette": Palette,
+  "navigation": Navigation,
+  "search": Search,
+  "code-2": Code2,
+  "sliders-horizontal": SlidersHorizontal,
+  "shield": Shield,
 };
 
 export interface AppSidebarProps {
@@ -101,21 +117,27 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
 
-  // Auto-open groups whose children include the current path
+  // Auto-open groups whose children include the current path, or when AT the parent href
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     for (const item of navItems) {
-      if (item.children?.some((c) => pathname.startsWith(c.href))) {
+      if (
+        item.children?.some((c) => pathname.startsWith(c.href)) ||
+        (item.children?.length && pathname === item.href)
+      ) {
         initial.add(item.id);
       }
     }
     return initial;
   });
 
-  // Keep groups open when pathname changes to a child
+  // Keep groups open when pathname changes to a child or parent
   useEffect(() => {
     for (const item of navItems) {
-      if (item.children?.some((c) => pathname.startsWith(c.href))) {
+      if (
+        item.children?.some((c) => pathname.startsWith(c.href)) ||
+        (item.children?.length && pathname === item.href)
+      ) {
         setOpenGroups((prev) => {
           if (prev.has(item.id)) return prev;
           const next = new Set(prev);
@@ -159,19 +181,23 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                // Items with children render as collapsible groups
+                // Items with children render as collapsible groups whose
+                // parent label is ALSO a link (navigates to item.href).
+                // The chevron SidebarMenuAction handles expand/collapse only.
                 if (item.children && item.children.length > 0) {
-                  const isGroupActive = item.children.some((c) =>
+                  const isParentExact = pathname === item.href;
+                  const isChildActive = item.children.some((c) =>
                     pathname.startsWith(c.href),
                   );
+                  const isGroupActive = isParentExact || isChildActive;
                   const isOpen = openGroups.has(item.id);
                   const Icon = item.icon ? ICON_MAP[item.icon] : undefined;
 
                   return (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
-                        tooltip={item.label}
                         isActive={isGroupActive}
+                        tooltip={item.label}
                         onClick={() => toggleGroup(item.id)}
                         className={cn(
                           "rounded-lg transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",

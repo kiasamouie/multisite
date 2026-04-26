@@ -1,14 +1,21 @@
 import type { PricingTableBlockContent } from "../../types";
+import { readStyledText } from "../../lib/content-style";
+import { sectionAttrs, headingAttrs, textAttrs } from "../../lib/styled-block";
 
 export function PricingTableBlock({ content }: { content: PricingTableBlockContent }) {
   const tiers = content.tiers || [];
+  const title = readStyledText(content.title);
+  const subtitle = readStyledText(content.subtitle);
+  const sec = sectionAttrs("mx-auto max-w-6xl px-6 py-16", content.sectionStyle);
+  const heading = headingAttrs("text-4xl font-bold", title.style);
+  const sub = textAttrs("mt-4 text-lg text-muted-foreground", subtitle.style);
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-16">
-      {content.title && (
+    <section className={sec.className} style={sec.style}>
+      {title.value && (
         <div className="mb-12 text-center">
-          <h2 className="text-4xl font-bold">{content.title}</h2>
-          {content.subtitle && <p className="mt-4 text-lg text-muted-foreground">{content.subtitle}</p>}
+          <h2 className={heading.className} style={heading.style}>{title.value}</h2>
+          {subtitle.value && <p className={sub.className} style={sub.style}>{subtitle.value}</p>}
         </div>
       )}
       <div className="grid gap-8 md:grid-cols-3">

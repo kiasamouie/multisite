@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Menu — Bibi Persian Kitchen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#fff8f3",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#fff2e1",
+                        "outline-variant": "#dfbfbd",
+                        "on-primary-fixed-variant": "#891b23",
+                        "inverse-on-surface": "#feefda",
+                        "background": "#fff8f3",
+                        "surface-container-highest": "#f0e0cc",
+                        "on-secondary-fixed-variant": "#5d4201",
+                        "secondary": "#775a19",
+                        "error": "#ba1a1a",
+                        "outline": "#8b716f",
+                        "on-secondary-container": "#785a1a",
+                        "surface-dim": "#e7d8c4",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#534344",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#f4ddde",
+                        "primary-fixed-dim": "#ffb3b0",
+                        "on-primary-fixed": "#410006",
+                        "on-surface": "#221a0e",
+                        "secondary-fixed-dim": "#e9c176",
+                        "primary-container": "#8b1d24",
+                        "surface-tint": "#aa3438",
+                        "surface-container": "#fbecd7",
+                        "inverse-surface": "#382f22",
+                        "on-secondary-fixed": "#261900",
+                        "on-tertiary-fixed": "#251819",
+                        "primary": "#6b0110",
+                        "on-tertiary-container": "#c7b2b3",
+                        "on-error": "#ffffff",
+                        "surface": "#fff8f3",
+                        "surface-container-high": "#f5e6d2",
+                        "on-background": "#221a0e",
+                        "tertiary-fixed-dim": "#d7c1c2",
+                        "tertiary-container": "#544445",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#f0e0cc",
+                        "on-primary-container": "#ff9c99",
+                        "tertiary": "#3c2e2f",
+                        "secondary-container": "#fed488",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#ffdea5",
+                        "on-surface-variant": "#584140",
+                        "inverse-primary": "#ffb3b0",
+                        "primary-fixed": "#ffdad8"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Noto Serif"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .editorial-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+        }
+        .pattern-overlay {
+            mask-image: url("https://www.transparenttextures.com/patterns/cubes.png");
+            opacity: 0.05;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-zinc-950/80 backdrop-blur-xl">
+<div class="max-w-7xl mx-auto flex justify-between items-center px-8 py-6">
+<div class="font-serif italic text-2xl text-rose-900 dark:text-rose-500">Bibi Persian Kitchen</div>
+<div class="hidden md:flex items-center space-x-10">
+<a class="text-amber-700 dark:text-amber-500 font-semibold border-b-2 border-amber-700 pb-1 font-sans text-sm tracking-wide" href="#">Menu</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:text-rose-900 font-sans text-sm tracking-wide transition-colors duration-300" href="#">Heritage</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:text-rose-900 font-sans text-sm tracking-wide transition-colors duration-300" href="#">Reservations</a>
+<a class="text-zinc-600 dark:text-zinc-400 hover:text-rose-900 font-sans text-sm tracking-wide transition-colors duration-300" href="#">Private Dining</a>
+</div>
+<div class="flex items-center">
+<button class="text-rose-900 hover:scale-95 duration-200 ease-in-out">
+<span class="material-symbols-outlined text-2xl" data-icon="shopping_bag">shopping_bag</span>
+</button>
+</div>
+</div>
+</nav>
+<main class="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
+<!-- Hero Title Section -->
+<header class="mb-24 text-center md:text-left">
+<p class="font-label text-[10px] uppercase tracking-[0.3em] text-secondary mb-4">Summer Harvest Season</p>
+<h1 class="font-headline text-5xl md:text-7xl lg:text-8xl tracking-tight text-primary leading-none">The Poetry <br class="hidden md:block"/>of the Hearth.</h1>
+<div class="mt-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<p class="max-w-md text-on-surface-variant font-light text-lg italic">
+                    A culinary journey through ancient Persia, curated with seasonal saffron, hand-pressed pomegranates, and the warmth of the tandoor.
+                </p>
+</div>
+</header>
+<!-- Mezze Section (Asymmetric Bento) -->
+<section class="mb-32">
+<div class="flex items-baseline gap-4 mb-12">
+<span class="font-headline text-4xl text-primary">01</span>
+<h2 class="font-headline text-3xl md:text-4xl">Mezze</h2>
+<div class="h-[1px] flex-grow bg-outline-variant/30"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12"><div class="md:col-span-1 space-y-8"><div class="group cursor-pointer"><div class="flex justify-between items-baseline mb-2"><h3 class="font-headline text-xl text-on-surface group-hover:text-primary transition-colors">Mirza Ghassemi</h3><span class="font-label text-xs text-secondary-fixed-dim">14</span></div><p class="text-sm text-on-surface-variant leading-relaxed font-light">Smoked aubergine, charred tomato, and garlic, folded with organic soft-poached eggs.</p></div><div class="group cursor-pointer"><div class="flex justify-between items-baseline mb-2"><h3 class="font-headline text-xl text-on-surface group-hover:text-primary transition-colors">Mast-o Moosir</h3><span class="font-label text-xs text-secondary-fixed-dim">11</span></div><p class="text-sm text-on-surface-variant leading-relaxed font-light">Strained heritage yogurt with wild shallots and rose petal dust.</p></div></div><div class="md:col-span-1 rounded-xl overflow-hidden shadow-lg h-full"><img alt="Authentic Persian Mezze spread" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ADBb0ugy5HPbwPMVWidgv0NJz0bHIw0XbxfwvD0FabrGDldTA5vA5LqAYLxTrfFDHoPnHYh4AEH44UiQcu_Ic2ySNsb6V8S5BppK5ZeklTl_O8hSA4B0OhUIN4ub_utkV6h9P2EOnHtZfKJ6LrmaAI5z_MNTE5hVO459yB0m0XrgSGdwimV4uwIdmv4aeRdHCeKAjyixQtk6gTThqJmMTPsRpwR2SMUKVRyP0ZesnzB675icnK90OMd5zYtr5NENhte8CgDNVO6PEGs4vNw"/></div><div class="md:col-span-1 bg-surface-container-low rounded-xl p-8 relative overflow-hidden flex flex-col justify-end min-h-[300px]"><div class="absolute top-0 right-0 p-8"><span class="font-label text-[10px] uppercase tracking-widest text-secondary">Chef's Signature</span></div><div class="pattern-overlay absolute inset-0"></div><div class="relative z-10"><h3 class="font-headline text-2xl mb-4 text-on-surface">Bibi's Hummus</h3><p class="text-sm text-on-surface-variant mb-6">Whipped chickpeas with warm spiced lamb and pine nuts.</p><span class="text-primary font-semibold">18</span></div></div></div>
+</section>
+<!-- Mains Section (Large Editorial Highlight) -->
+<section class="mb-32">
+<div class="flex items-baseline gap-4 mb-12">
+<span class="font-headline text-4xl text-primary">02</span>
+<h2 class="font-headline text-3xl md:text-4xl">Mains</h2>
+<div class="h-[1px] flex-grow bg-outline-variant/30"></div>
+</div>
+<div class="editorial-grid gap-y-12 md:gap-y-0">
+<div class="col-span-12 md:col-span-7 relative z-10">
+<div class="aspect-[4/5] md:aspect-[3/4] rounded-xl overflow-hidden shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="Lifestyle dining shot of saffron rice and grilled chicken" src="https://lh3.googleusercontent.com/aida/ADBb0uiE2grjYwtpfr_g5wNHu03gGgQTkoScIpbXN9yUSh5g3WvT0Ar_qV5wdoXWcW5drdAVx6uBbl6MBq9yl5NTXCvTNtEnn3b8cu-0jWkHOFU5-y1DfMF-YTJOXmv91jFb4EcN5Ep4X-zvjN161fR0bTwZ1tgPkmXT3ta-kvOoz99XUbF6NIsiCFWwYipF1tODmuu_xdlwRW7Pl7TkkxPS8XfiEZTbLuY_5Fd6hmjEUBb9muzzeAfi0OtGEyKDKCDPYF430YqAWs0jyBs"/>
+</div>
+</div>
+<div class="col-span-12 md:col-span-6 md:-ml-24 self-center bg-surface-bright/90 backdrop-blur-md p-8 md:p-16 rounded-xl relative z-20 shadow-xl border border-outline-variant/10">
+<span class="font-label text-[10px] uppercase tracking-widest text-secondary mb-4 block">The Main Feature</span>
+<h3 class="font-headline text-4xl md:text-5xl text-primary mb-6 leading-tight">Lamb Shank Shankool</h3>
+<p class="text-on-surface-variant text-lg leading-relaxed mb-8">
+                        Braised for twelve hours in a silken broth of saffron, cinnamon, and dried lime. This dish represents the soul of our kitchen—tender enough to be eaten with a spoon.
+                    </p>
+<div class="flex items-center gap-8">
+<span class="font-headline text-2xl text-on-surface">38</span>
+<button class="bg-primary text-on-primary px-8 py-3 rounded-full font-label text-xs uppercase tracking-widest hover:opacity-90 transition-opacity">Request Pairing</button>
+</div>
+</div>
+</div>
+<div class="mt-24 grid grid-cols-1 md:grid-cols-2 gap-x-24 gap-y-16">
+<div class="group">
+<div class="flex justify-between items-baseline mb-3 border-b border-outline-variant/20 pb-4">
+<h4 class="font-headline text-2xl text-on-surface">Zereshk Polo Ba Morgh</h4>
+<span class="text-secondary">29</span>
+</div>
+<p class="text-on-surface-variant font-light">Saffron-infused chicken leg served with fluffy basmati rice, studded with tart barberries and toasted pistachios.</p>
+</div>
+<div class="group">
+<div class="flex justify-between items-baseline mb-3 border-b border-outline-variant/20 pb-4">
+<h4 class="font-headline text-2xl text-on-surface">Ghormeh Sabzi</h4>
+<span class="text-secondary">32</span>
+</div>
+<p class="text-on-surface-variant font-light">The national dish. A herb-rich stew with tender beef, kidney beans, and sundried limes. Intense and earthy.</p>
+</div>
+<div class="md:col-span-1 rounded-xl overflow-hidden shadow-md mb-4 aspect-video"><img alt="Ghormeh Sabzi stew" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ADBb0uicsP1Yy2QBpPyoVmsruXtw6JK8MWm8o-cmtQzy1Uao7_zxlfu1LdoKgXO6g7XuUCDg6RyDmtvywMEy-l5_LlNaaKOZeFY9uWSQrEN8kFPHEumpOsELnpWEkDbhWFjI2qeNuTvPoXgmWfMQOSsclrWrCXG6pYJdMh6HNoNkaH-WQuZSiDpnTdB912msXMet11y_wOfv8hROAPPoZQymxHwxtlyVkeShZTHfIYIVXLI09yK92i3CcQc47EmNboJLiD8PSUG-sQI2eTo"/></div><div class="group">
+<div class="flex justify-between items-baseline mb-3 border-b border-outline-variant/20 pb-4">
+<h4 class="font-headline text-2xl text-on-surface">Sea Bass Khoneh</h4>
+<span class="text-secondary">36</span>
+</div>
+<p class="text-on-surface-variant font-light">Wild-caught bass marinated in tamarind, garlic, and fresh coriander, grilled over charcoal.</p>
+</div>
+<div class="group">
+<div class="flex justify-between items-baseline mb-3 border-b border-outline-variant/20 pb-4">
+<h4 class="font-headline text-2xl text-on-surface">Vegetable Fesenjan</h4>
+<span class="text-secondary">27</span>
+</div>
+<p class="text-on-surface-variant font-light">Roasted seasonal roots in a rich, dark sauce of ground walnuts and reduced pomegranate juice.</p>
+</div>
+</div>
+</section>
+<!-- Desserts Section (Glassmorphism & Tonal Layering) -->
+<section class="mb-32">
+<div class="flex items-baseline gap-4 mb-12">
+<span class="font-headline text-4xl text-primary">03</span>
+<h2 class="font-headline text-3xl md:text-4xl">Desserts</h2>
+<div class="h-[1px] flex-grow bg-outline-variant/30"></div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+<div class="space-y-16">
+<div class="p-8 rounded-xl bg-surface-container-high relative overflow-hidden">
+<div class="pattern-overlay absolute inset-0"></div>
+<div class="relative z-10">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline text-3xl text-primary">Saffron Ice Cream</h3>
+<span class="text-secondary font-semibold">12</span>
+</div>
+<p class="text-on-surface-variant leading-relaxed">
+                                Traditional Bastani infused with luxury saffron, rose water, and frozen cream chunks. Finished with crushed pistachios.
+                            </p>
+</div>
+</div>
+<div class="flex flex-col gap-8 px-4">
+<div class="flex justify-between group cursor-pointer">
+<div>
+<h4 class="font-headline text-xl mb-1 group-hover:text-primary transition-colors">Faloodeh Yazdi</h4>
+<p class="text-xs text-on-surface-variant italic">Vermicelli noodles in semi-frozen rose syrup with fresh lime.</p>
+</div>
+<span class="text-sm font-label text-secondary">10</span>
+</div>
+<div class="flex justify-between group cursor-pointer">
+<div>
+<h4 class="font-headline text-xl mb-1 group-hover:text-primary transition-colors">Baklava Trio</h4>
+<p class="text-xs text-on-surface-variant italic">Honey-soaked filo with walnut, almond, and pistachio hearts.</p>
+</div>
+<span class="text-sm font-label text-secondary">15</span>
+</div>
+</div>
+</div>
+<div class="relative">
+<div class="aspect-square rounded-full overflow-hidden border-[12px] border-surface-container shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="Authentic Kunafa dessert served with ice cream" src="https://lh3.googleusercontent.com/aida/ADBb0ugEP8GZmUBIDYuYHOjGAtukUvMxGyM6fSKemngLAk2hNY45ZSqMmP64s13j2CCbmc4_kS5NNHDUvnIsGMGJ2j0Hc7SJcfkCWGOdgDQmRf1WSm3ESu3prb3nuRUlTo2F9u6HUF7NhFiCQA_Fs6mGGj0bJnRNJgRDazJ9dPPPec3zhfDxZ94-eTj0PuVKC146vQhn9dKjalFbBMZzgfOwNcv4xtoc7ERnxFleFOubhdrHY2E5E2o8m0dfsClhi2KdTbtFTbdZehk0SwQ"/>
+</div>
+<div class="absolute -bottom-6 -left-6 bg-secondary text-on-secondary p-8 rounded-xl max-w-[200px] shadow-xl">
+<p class="font-headline text-lg italic leading-tight">"A sweet conclusion to the silk road."</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface/90 dark:bg-zinc-950/90 backdrop-blur-2xl flex justify-around items-center px-4 pb-6 pt-3 shadow-[0_-4px_40px_rgba(34,26,14,0.05)] rounded-t-3xl">
+<a class="flex flex-col items-center justify-center bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded-full px-6 py-2" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="restaurant_menu">restaurant_menu</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-medium mt-1">Taste</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-rose-50 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="event_available">event_available</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-medium mt-1">Book</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-rose-50 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="menu_book">menu_book</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-medium mt-1">Journal</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-rose-50 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="person">person</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-medium mt-1">Profile</span>
+</a>
+</nav>
+<!-- Footer -->
+<footer class="w-full py-12 px-8 mt-24 bg-zinc-100 dark:bg-zinc-900">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+<div class="space-y-4">
+<div class="font-serif text-xl text-rose-900">Bibi Persian Kitchen</div>
+<div class="flex gap-6">
+<a class="font-sans text-sm tracking-wide text-zinc-500 hover:underline decoration-amber-600" href="#">Provenance</a>
+<a class="font-sans text-sm tracking-wide text-zinc-500 hover:underline decoration-amber-600" href="#">Careers</a>
+<a class="font-sans text-sm tracking-wide text-zinc-500 hover:underline decoration-amber-600" href="#">Privacy</a>
+<a class="font-sans text-sm tracking-wide text-zinc-500 hover:underline decoration-amber-600" href="#">Accessibility</a>
+</div>
+</div>
+<div class="md:text-right">
+<p class="font-sans text-sm tracking-wide text-rose-950 dark:text-rose-100 opacity-60">
+                    © 2024 Bibi Persian Kitchen. Crafted with Pomegranate &amp; Saffron.
+                </p>
+</div>
+</div>
+</footer>
+</body></html>

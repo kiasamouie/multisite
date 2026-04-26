@@ -1,11 +1,35 @@
+"use client";
+
 import type { BlogGridBlockContent } from "../../types";
+import { useLibraryContent } from "../../renderer/PageContext";
+import { readStyledText } from "../../lib/content-style";
+import { sectionAttrs, headingAttrs } from "../../lib/styled-block";
 
 export function BlogGridBlock({ content }: { content: BlogGridBlockContent }) {
-  const posts = content.posts || [];
+  const { getItems } = useLibraryContent();
+  const libraryRows = getItems("blog", content.blogPostIds);
+  const posts =
+    libraryRows.length > 0
+      ? libraryRows.map((r) => ({
+          title: String(r.title ?? ""),
+          excerpt: String(r.excerpt ?? ""),
+          imageUrl:
+            (r.image_id
+              ? `/api/media/${r.image_id}/img`
+              : (r.image_url as string | null)) ?? undefined,
+          href: r.slug ? `/blog/${r.slug}` : "#",
+          date: (r.published_at as string | null) ?? undefined,
+          author: (r.author as string | null) ?? undefined,
+        }))
+      : content.posts || [];
+
+  const title = readStyledText(content.title);
+  const sec = sectionAttrs("mx-auto max-w-6xl px-6 py-16", content.sectionStyle);
+  const heading = headingAttrs("mb-10 text-center text-3xl font-bold", title.style);
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-16">
-      {content.title && <h2 className="mb-10 text-center text-3xl font-bold">{content.title}</h2>}
+    <section className={sec.className} style={sec.style}>
+      {title.value && <h2 className={heading.className} style={heading.style}>{title.value}</h2>}
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {posts.map((p, i) => (
           <a

@@ -16,19 +16,33 @@ interface PageMediaBlockProps {
  * at the server level and passed through context.
  */
 export function PageMediaBlock({ content }: PageMediaBlockProps) {
-  const { assets: allAssets, getByUsageType } = usePageMedia();
+  const { getByUsageType } = usePageMedia();
   const assets = getByUsageType(content.usage_type);
 
-  console.log("🎬 PageMediaBlock:", {
-    usage_type: content.usage_type,
-    total_assets: allAssets.length,
-    filtered_assets: assets.length,
-    assets: assets.map(a => ({ id: a.id, filename: a.filename, type: a.type, usage_type: a.usage_type })),
-  });
-
-  if (assets.length === 0) return null;
-
   const mode = content.display_mode ?? "gallery";
+
+  if (assets.length === 0) {
+    return (
+      <section className="px-4 py-8">
+        <div className="mx-auto max-w-6xl">
+          {content.title && (
+            <h2 className="mb-4 text-center text-3xl font-bold">{content.title}</h2>
+          )}
+          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 p-8 text-center">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">
+                No media associated with usage type &ldquo;{content.usage_type}&rdquo;
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Attach media from the Page Media tab, then it will appear here as{" "}
+                <span className="font-mono">{mode}</span>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="px-4 py-8">

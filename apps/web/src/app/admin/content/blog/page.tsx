@@ -29,6 +29,7 @@ interface BlogPost extends Record<string, unknown> {
   published_at: string | null;
   is_published: boolean;
   created_at: string;
+  tenants?: { id: number; name: string };
 }
 
 function formatDate(v: unknown): string {
@@ -39,20 +40,33 @@ function formatDate(v: unknown): string {
 
 export default function BlogPage() {
   const { tenantId } = useAdmin();
+  const isSuper = tenantId === null;
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [tenantFilter, setTenantFilter] = useState("");
+
+  const tenantList = useSupabaseList<{ id: number; name: string } & Record<string, unknown>>({
+    resource: "tenants",
+    select: "id, name",
+    enabled: isSuper,
+    pageSize: 200,
+  });
 
   const filters = useMemo<SupabaseFilter[]>(() => {
     const f: SupabaseFilter[] = [];
-    if (tenantId) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (!isSuper) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (isSuper && tenantFilter) f.push({ field: "tenant_id", operator: "eq", value: Number(tenantFilter) });
     if (search) f.push({ field: "title", operator: "contains", value: search });
+    if (statusFilter !== "") f.push({ field: "is_published", operator: "eq", value: statusFilter === "published" });
     return f;
-  }, [tenantId, search]);
+  }, [tenantId, isSuper, search, statusFilter, tenantFilter]);
 
   const list = useSupabaseList<BlogPost>({
     resource: "blog_posts",
+    select: isSuper ? "*, tenants(id, name)" : "*",
     filters,
     sorters: [{ field: "created_at", order: "desc" }],
-    enabled: !!tenantId,
+    enabled: true,
   });
 
   const crud = useCrudPanel<BlogPost>();
@@ -60,6 +74,11 @@ export default function BlogPage() {
   const columns: Column<BlogPost>[] = [
     { key: "title", label: "Title", sortable: true },
     { key: "author", label: "Author", render: (v) => v?.author || "—" },
+    ...(isSuper ? [{
+      key: "tenants" as keyof BlogPost & string,
+      label: "Tenant",
+      render: (v: BlogPost) => <span className="text-xs">{v.tenants?.name ?? "—"}</span>,
+    }] : []),
     { key: "published_at", label: "Published", render: (v) => formatDate(v.published_at) },
     {
       key: "is_published",
@@ -132,10 +151,40 @@ export default function BlogPage() {
         loading={list.isLoading}
         mode="table"
         emptyMessage="No blog posts found."
-        filter={{ search, onSearchChange: setSearch, searchPlaceholder: "Search by title\u2026" }}
+        filter={{
+          search,
+          onSearchChange: setSearch,
+          searchPlaceholder: "Search by title\u2026",
+          filters: [
+            ...(isSuper ? [{
+              type: "combobox" as const,
+              label: "Tenant",
+              value: tenantFilter,
+              onChange: setTenantFilter,
+              options: tenantList.data.map(t => ({ value: String(t.id), label: String(t.name) })),
+              placeholder: "All tenants",
+              searchPlaceholder: "Search tenants…",
+              width: "200px",
+            }] : []),
+            {
+              type: "chips" as const,
+              inline: true,
+              value: statusFilter,
+              onChange: setStatusFilter,
+              options: [
+                { value: "published", label: "Published", color: { bg: "hsl(var(--success)/0.1)", text: "hsl(var(--success))", border: "hsl(var(--success)/0.2)" } },
+                { value: "draft",     label: "Draft" },
+              ],
+            },
+          ],
+          hasFilters: search !== "" || statusFilter !== "" || tenantFilter !== "",
+          onClear: () => { setSearch(""); setStatusFilter(""); setTenantFilter(""); },
+        }}
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        pageSize={list.pageSize}
+        onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
         onRefresh={() => list.invalidate()}
         onRowClick={(item) => crud.openPanel("edit", item)}
         canDelete

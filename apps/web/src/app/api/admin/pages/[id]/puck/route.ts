@@ -45,6 +45,21 @@ export async function POST(
     if (!puckData?.content || !Array.isArray(puckData.content)) {
       return NextResponse.json({ error: "Invalid Puck data format" }, { status: 400 });
     }
+
+    // Strip the editor-only `page_content_placeholder` block before
+    // persisting. It exists solely as a visual spacer in the
+    // Header & Footer Puck preview and must never reach the DB.
+    puckData = {
+      ...puckData,
+      content: puckData.content.filter(
+        (b) =>
+          !(
+            b &&
+            typeof b === "object" &&
+            (b as { type?: string }).type === "page_content_placeholder"
+          ),
+      ),
+    };
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }

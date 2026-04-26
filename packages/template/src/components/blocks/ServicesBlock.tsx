@@ -1,14 +1,19 @@
 import type { ServicesBlockContent } from "../../types";
+import { readStyledText } from "../../lib/content-style";
+import { sectionAttrs, headingAttrs } from "../../lib/styled-block";
 
 interface ServicesBlockProps {
   content: ServicesBlockContent;
 }
 
 export function ServicesBlock({ content }: ServicesBlockProps) {
+  const title = readStyledText(content.title);
+  const sec = sectionAttrs("px-4 py-16", content.sectionStyle);
+  const heading = headingAttrs("mb-12 text-center text-3xl font-bold", title.style);
   return (
-    <section className="px-4 py-16">
+    <section className={sec.className} style={sec.style}>
       <div className="mx-auto max-w-6xl">
-        <h2 className="mb-12 text-center text-3xl font-bold">{content.title}</h2>
+        <h2 className={heading.className} style={heading.style}>{title.value}</h2>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {content.services.map((service, i) => (
             <div key={i} className="rounded-xl border bg-card p-6 shadow-sm">

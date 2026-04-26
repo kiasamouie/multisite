@@ -9,5 +9,8 @@ export interface Column<T> {
   hideOnMobile?: boolean;
   /** Allow clicking the column header to sort by this column */
   sortable?: boolean;
+  /** Custom sort value extractor — use when the column key doesn't map to a
+   *  directly comparable top-level field (e.g. nested or computed values). */
+  sortValue?: (item: T) => string | number;
   render?: (item: T) => ReactNode;
 }

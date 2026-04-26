@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode, ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   RefreshCw, FolderOpen, Plus, ChevronLeft, ChevronRight,
   Pencil, Trash2, ExternalLink,
   ArrowUpDown, ArrowUp, ArrowDown,
+  ListOrdered, GripVertical, Check, X as XIcon,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
+import { toast } from "sonner";
 import type { Column } from "./data-view-types";
 import { LoadingState } from "../EmptyState";
 import { EmptyState } from "../EmptyState";
@@ -76,6 +79,12 @@ interface DataViewBase<T> {
   page?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  /** Current page size. Used to display and drive the rows-per-page dropdown. */
+  pageSize?: number;
+  /** Called when the user picks a different page size. Reset to page 1 is the caller's responsibility. */
+  onPageSizeChange?: (size: number) => void;
+  /** Available page-size options shown in the dropdown. Defaults to [10, 25, 50, 100]. */
+  pageSizeOptions?: number[];
   // ── Generic built-in actions ──────────────────────────────────────────────
   /** Clicking a row opens the view modal */
   canView?: boolean;
@@ -88,6 +97,13 @@ interface DataViewBase<T> {
   deleteConfig?: DeleteConfig<T>;
   /** Renders an ExternalLink icon button that navigates to a detail page */
   viewHref?: (item: T) => string;
+  // ── Drag-to-reorder (opt-in, generic) ─────────────────────────────────────
+  /** Enables a Sort button (next to Refresh) that toggles drag-to-reorder mode. */
+  reorderable?: boolean;
+  /** Called with the new ordered list when the user clicks Save. */
+  onSaveOrder?: (items: T[]) => void | Promise<void>;
+  /** External saving state — disables Save button and shows spinner. */
+  savingOrder?: boolean;
 }
 
 export interface DataViewTableProps<T> extends DataViewBase<T> {
@@ -142,6 +158,21 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
   const [deleteItem, setDeleteItem] = useState<T | null>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  // Drag-to-reorder state
+  const [isReordering, setIsReordering] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<T[] | null>(null);
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+
+  // Wrap onRefresh callbacks with a small confirmation toast so every
+  // DataView refresh button has identical UX without each caller wiring it up.
+  const wrapRefresh = (cb?: () => void) =>
+    cb
+      ? () => {
+          cb();
+          toast.info("Refreshed", { duration: 1500 });
+        }
+      : undefined;
 
   // Resolve view from either `view` or `mode` prop
   const resolvedView =
@@ -171,7 +202,7 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
       <div className="flex items-center gap-2">
         {gFilter && <div className="flex-1"><Filter type="bar" {...gFilter} /></div>}
         {gOnRefresh && (
-          <Button variant="ghost" size="icon" onClick={gOnRefresh} disabled={gLoading} title="Refresh">
+          <Button variant="ghost" size="icon" onClick={wrapRefresh(gOnRefresh)} disabled={gLoading} title="Refresh">
             <RefreshCw className={`h-4 w-4 transition-transform ${gLoading ? "animate-spin" : ""}`} />
           </Button>
         )}
@@ -277,6 +308,9 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
     page,
     totalPages,
     onPageChange,
+    pageSize,
+    onPageSizeChange,
+    pageSizeOptions,
     canView,
     viewModal,
     canEdit,
@@ -284,6 +318,9 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
     canDelete,
     deleteConfig,
     viewHref,
+    reorderable,
+    onSaveOrder,
+    savingOrder = false,
     ...rest
   } = props as DataViewTableProps<T> | DataViewCardProps<T>;
 
@@ -295,54 +332,161 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
       return rec.id != null ? String(rec.id) : String(data.indexOf(item));
     });
 
+  // Keep pendingOrder fresh when data changes outside reorder mode
+  useEffect(() => {
+    if (!isReordering) {
+      setPendingOrder(null);
+    }
+  }, [data, isReordering]);
+
   const header = title
     ? <PageHeader title={title} actions={titleActions} backHref={titleBackHref} />
     : null;
 
   const refreshButton = onRefresh ? (
-    <Button variant="ghost" size="icon" onClick={onRefresh} disabled={loading} title="Refresh" className="h-8 w-8 shrink-0">
+    <Button variant="ghost" size="icon" onClick={wrapRefresh(onRefresh)} disabled={loading} title="Refresh" className="h-8 w-8 shrink-0">
       <RefreshCw className={`h-4 w-4 transition-transform ${loading ? "animate-spin" : ""}`} />
     </Button>
   ) : null;
 
-  const topBar = (filter || onRefresh) ? (
+  // Reorder controls (Sort / Save / Discard) — rendered to the LEFT of Refresh
+  const enterReorder = () => {
+    setPendingOrder([...data]);
+    setIsReordering(true);
+  };
+  const discardReorder = () => {
+    setIsReordering(false);
+    setPendingOrder(null);
+    setDraggingKey(null);
+    setDragOverKey(null);
+  };
+  const saveReorder = async () => {
+    if (!onSaveOrder || !pendingOrder) return;
+    try {
+      await onSaveOrder(pendingOrder);
+      setIsReordering(false);
+      setPendingOrder(null);
+      setDraggingKey(null);
+      setDragOverKey(null);
+    } catch {
+      // Caller is expected to surface errors; stay in reorder mode so user can retry
+    }
+  };
+
+  const reorderControls = reorderable ? (
+    <div className="flex items-center gap-1 shrink-0 transition-all duration-200">
+      {!isReordering ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={enterReorder}
+          disabled={loading || data.length < 2}
+          title="Reorder"
+          className="h-8 w-8 transition-all duration-200 hover:bg-[hsl(var(--primary)/0.1)] hover:text-primary"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </Button>
+      ) : (
+        <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-1 duration-200">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={discardReorder}
+            disabled={savingOrder}
+            title="Discard changes"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+          >
+            <XIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            onClick={saveReorder}
+            disabled={savingOrder}
+            title="Save order"
+            className="h-8 transition-all duration-200"
+          >
+            {savingOrder ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <>
+                <Check className="mr-1 h-3.5 w-3.5" />
+                Save order
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  const topBar = (filter || onRefresh || reorderable) ? (
     <div className="flex items-center gap-2">
       {filter && <div className="flex-1"><Filter type="bar" {...filter} /></div>}
       {!filter && <div className="flex-1" />}
+      {reorderControls}
       {refreshButton}
     </div>
   ) : null;
 
-  const paginationBar = (totalPages && totalPages > 1 && onPageChange) ? (
+  const PAGE_SIZE_OPTIONS = pageSizeOptions ?? [10, 25, 50, 100];
+
+  const paginationBar = (totalPages && totalPages > 1 && onPageChange) || onPageSizeChange ? (
     <div className="flex items-center justify-between px-2 py-2">
       <span className="text-xs text-muted-foreground">
-        Page {page ?? 1} of {totalPages}
+        {totalPages && totalPages > 1 ? `Page ${page ?? 1} of ${totalPages}` : ""}
       </span>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          disabled={(page ?? 1) <= 1}
-          onClick={() => onPageChange((page ?? 1) - 1)}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          disabled={(page ?? 1) >= totalPages}
-          onClick={() => onPageChange((page ?? 1) + 1)}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center gap-2">
+        {onPageSizeChange && (
+          <Select
+            value={String(pageSize ?? PAGE_SIZE_OPTIONS[0])}
+            onValueChange={(v) => { onPageSizeChange(Number(v)); }}
+          >
+            <SelectTrigger className="h-7 w-[80px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map(n => (
+                <SelectItem key={n} value={String(n)} className="text-xs">{n} / page</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {totalPages && totalPages > 1 && onPageChange && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              disabled={(page ?? 1) <= 1}
+              onClick={() => onPageChange((page ?? 1) - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              disabled={(page ?? 1) >= totalPages}
+              onClick={() => onPageChange((page ?? 1) + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   ) : null;
 
-  if (loading) return <>{header}{topBar}<LoadingState /></>;
-  if (data.length === 0) return <>{header}{topBar}<EmptyState message={emptyMessage} icon={emptyIcon} /></>;
+  if (loading) return (
+    <div className={`space-y-3 ${className ?? ""}`}>
+      {header}{topBar}<LoadingState />
+    </div>
+  );
+  if (data.length === 0) return (
+    <div className={`space-y-3 ${className ?? ""}`}>
+      {header}{topBar}<EmptyState message={emptyMessage} icon={emptyIcon} />
+    </div>
+  );
 
   // Whether a row/card is clickable
   const isRowClickable = !!(onRowClick || (canView && viewModal));
@@ -519,20 +663,72 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
       })
     : data;
 
+  // When in reorder mode, ignore column sorting and show pendingOrder
+  const displayData = isReordering && pendingOrder ? pendingOrder : sortedData;
+
+  // ── Drag-and-drop handlers (HTML5 native) ────────────────────────────────
+  const handleDragStart = (key: string) => (e: React.DragEvent) => {
+    setDraggingKey(key);
+    e.dataTransfer.effectAllowed = "move";
+    // Required for Firefox
+    try { e.dataTransfer.setData("text/plain", key); } catch { /* ignore */ }
+  };
+
+  const handleDragOver = (key: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (!draggingKey || draggingKey === key) return;
+    if (dragOverKey !== key) setDragOverKey(key);
+
+    setPendingOrder(prev => {
+      const list = prev ?? [...data];
+      const fromIdx = list.findIndex(it => keyExtractor(it) === draggingKey);
+      const toIdx = list.findIndex(it => keyExtractor(it) === key);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return list;
+      const next = [...list];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  };
+
+  const handleDragEnd = () => {
+    setDraggingKey(null);
+    setDragOverKey(null);
+  };
+
   const tableBody = (
     <TableBody>
-      {sortedData.map(row => {
+      {displayData.map(row => {
         const key = keyExtractor(row);
         const isSelected = selectedKey !== undefined && key === selectedKey;
+        const isDragging = isReordering && draggingKey === key;
+        const isDragOver = isReordering && dragOverKey === key && draggingKey !== key;
         return (
           <TableRow
             key={key}
+            draggable={isReordering}
+            onDragStart={isReordering ? handleDragStart(key) : undefined}
+            onDragOver={isReordering ? handleDragOver(key) : undefined}
+            onDragEnd={isReordering ? handleDragEnd : undefined}
+            onDrop={isReordering ? (e) => { e.preventDefault(); handleDragEnd(); } : undefined}
             className={[
-              isRowClickable ? "cursor-pointer" : "",
+              "transition-all duration-200",
+              isRowClickable && !isReordering ? "cursor-pointer" : "",
               isSelected ? "bg-[hsl(var(--primary)/0.1)] hover:bg-[hsl(var(--primary)/0.12)]" : "",
+              isReordering ? "select-none" : "",
+              isDragging ? "opacity-40 scale-[0.99]" : "",
+              isDragOver ? "bg-[hsl(var(--primary)/0.08)] outline outline-1 outline-[hsl(var(--primary)/0.5)]" : "",
             ].filter(Boolean).join(" ")}
-            onClick={isRowClickable ? () => handleRowClick(row) : undefined}
+            onClick={isRowClickable && !isReordering ? () => handleRowClick(row) : undefined}
           >
+            {isReordering && (
+              <TableCell className="w-[1%] whitespace-nowrap pr-0">
+                <span className="inline-flex items-center justify-center text-muted-foreground cursor-grab active:cursor-grabbing hover:text-foreground transition-colors">
+                  <GripVertical className="h-4 w-4" />
+                </span>
+              </TableCell>
+            )}
             {columns.map(col => (
               <TableCell key={col.key} className={[col.className, col.width].filter(Boolean).join(" ")}>
                 {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "")}
@@ -541,8 +737,8 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
             {hasActionsColumn && (
               <TableCell onClick={e => e.stopPropagation()}>
                 <div className="flex justify-end gap-2">
-                  {rowActions?.(row)}
-                  {renderBuiltinActions(row)}
+                  {!isReordering && rowActions?.(row)}
+                  {!isReordering && renderBuiltinActions(row)}
                 </div>
               </TableCell>
             )}
@@ -563,6 +759,7 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
               <Table>
                 <TableHeader className="sticky top-0 bg-[hsl(var(--surface-low))] z-10">
                   <TableRow>
+                    {isReordering && <TableHead className="w-[1%]" />}
                     {columns.map(col => (
                       <TableHead
                         key={col.key}
@@ -593,6 +790,7 @@ export function DataView<T, I = unknown>(props: DataViewProps<T, I>) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {isReordering && <TableHead className="w-[1%]" />}
                   {columns.map(col => (
                     <TableHead
                       key={col.key}

@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { readStyledText, type ContentStyle } from "../../lib/content-style";
+import { sectionAttrs, headingAttrs, textAttrs } from "../../lib/styled-block";
+
+type StyledOrString = string | { value: string; style?: ContentStyle };
 
 export interface BookingBlockContent {
-  title?: string;
-  subtitle?: string;
+  title?: StyledOrString;
+  subtitle?: StyledOrString;
   sectionLabel?: string;
   buttonText?: string;
   cancelPolicy?: string;
@@ -17,6 +21,8 @@ export interface BookingBlockContent {
   backgroundImageUrl?: string;
   /** Preferred: id of a tenant media item — rendered via /api/media/{id}/img. */
   backgroundImageId?: number;
+  /** Generic styling applied to the wrapping <section>. */
+  sectionStyle?: ContentStyle;
 }
 
 interface BookingBlockProps {
@@ -27,8 +33,8 @@ type FormState = "idle" | "submitting" | "success" | "error";
 
 export function BookingBlock({ content }: BookingBlockProps) {
   const {
-    title = "Book Your Visit",
-    subtitle = "Reserve your spot today.",
+    title: rawTitle,
+    subtitle: rawSubtitle,
     sectionLabel = "Secure your booking",
     buttonText = "Confirm Booking",
     cancelPolicy = "By confirming, you agree to our 24-hour cancellation policy.",
@@ -42,7 +48,19 @@ export function BookingBlock({ content }: BookingBlockProps) {
     contactEmail,
     backgroundImageUrl,
     backgroundImageId,
+    sectionStyle,
   } = content;
+
+  const titleStyled = readStyledText(rawTitle);
+  const subtitleStyled = readStyledText(rawSubtitle);
+  const title = titleStyled.value || "Book Your Visit";
+  const subtitle = subtitleStyled.value || "Reserve your spot today.";
+  const sec = sectionAttrs("min-h-[600px] w-full md:flex", sectionStyle);
+  const heading = headingAttrs(
+    "mb-3 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl",
+    titleStyled.style,
+  );
+  const subText = textAttrs("mb-8 max-w-md text-base text-white/80", subtitleStyled.style);
 
   const showPartySizeField = showPartySize !== "false";
 
@@ -150,7 +168,7 @@ export function BookingBlock({ content }: BookingBlockProps) {
   }
 
   return (
-    <section className="min-h-[600px] w-full md:flex">
+    <section className={sec.className} style={sec.style}>
       {/* ── Left: Brand / Ambient Panel ─────────────────────────────── */}
       <div
         className="relative flex min-h-[300px] flex-col justify-end bg-[var(--color-foreground)] md:min-h-[600px] md:w-[55%]"
@@ -168,10 +186,10 @@ export function BookingBlock({ content }: BookingBlockProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
         <div className="relative z-10 p-8 md:p-12">
-          <h2 className="mb-3 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
+          <h2 className={heading.className} style={heading.style}>
             {title}
           </h2>
-          <p className="mb-8 max-w-md text-base text-white/80">
+          <p className={subText.className} style={subText.style}>
             {subtitle}
           </p>
 

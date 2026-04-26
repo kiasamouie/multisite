@@ -12,7 +12,7 @@ export { CreateModal, EditModal } from "./modals";
 
 // Admin component library
 export {
-  StatusBadge,
+  EnumBadge,
   InfoCard,
   DataView,
   CrudModal,
@@ -31,7 +31,7 @@ export {
   ComponentPageHeader,
 } from "./components";
 export type {
-  StatusBadgeProps,
+  EnumBadgeProps,
   InfoCardProps,
   DataViewProps,
   Column,

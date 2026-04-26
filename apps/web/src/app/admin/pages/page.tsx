@@ -15,7 +15,7 @@ import {
   PageHeader,
   DataView,
   CrudModal,
-  StatusBadge,
+  EnumBadge,
   ReadOnlyField,
 } from "@/components/common";
 import type { Column } from "@repo/ui/admin/components";
@@ -23,7 +23,7 @@ import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
-import { Trash2, Pencil, LayoutTemplate, ExternalLink } from "lucide-react";
+import { Trash2, Pencil, LayoutTemplate, ExternalLink, PanelTop } from "lucide-react";
 import { buildTenantUrl } from "@/lib/url";
 import { toast } from "sonner";
 
@@ -34,6 +34,7 @@ interface PageRecord extends Record<string, unknown> {
   title: string;
   is_published: boolean;
   is_homepage: boolean;
+  page_type?: string | null;
   created_at: string;
   updated_at: string;
   tenants?: { id: number; name: string; domain: string };
@@ -234,24 +235,69 @@ export default function PagesPage() {
   const isSuper = tenantId === null;
   const canUsePuck = isSuper || plan === "growth" || plan === "pro";
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [tenantFilter, setTenantFilter] = useState("");
+  const router = useRouter();
+
+  const tenantList = useSupabaseList<{ id: number; name: string } & Record<string, unknown>>({
+    resource: "tenants",
+    select: "id, name",
+    enabled: isSuper,
+    pageSize: 200,
+  });
 
   const filters = useMemo<SupabaseFilter[]>(() => {
     const f: SupabaseFilter[] = [];
     if (!isSuper) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (isSuper && tenantFilter) f.push({ field: "tenant_id", operator: "eq", value: Number(tenantFilter) });
     if (search.trim()) f.push({ field: "title", operator: "contains", value: search });
+    // multi-select: only filter when exactly one value is selected (can't OR in generic hook)
+    if (statusFilter.length === 1) {
+      if (statusFilter[0] === "published") f.push({ field: "is_published", operator: "eq", value: true });
+      if (statusFilter[0] === "draft") f.push({ field: "is_published", operator: "eq", value: false });
+    }
     return f;
-  }, [tenantId, isSuper, search]);
+  }, [tenantId, isSuper, search, statusFilter, tenantFilter]);
 
   const list = useSupabaseList<PageRecord>({
     resource: "pages",
     select: isSuper ? "*, tenants(id, name, domain)" : "*",
     filters,
+    sorters: [
+      { field: "sort_order", order: "asc" },
+      { field: "created_at", order: "asc" },
+    ],
+    pageSize: 100,
   });
 
   const crud = useCrudPanel<PageRecord>();
   const { deleteRecord } = useSupabaseDelete("pages");
+  const [savingOrder, setSavingOrder] = useState(false);
   // Form state for create/edit
   const [formData, setFormData] = useState({ title: "", slug: "", is_published: false, is_homepage: false });
+
+  const handleSaveOrder = async (items: PageRecord[]) => {
+    setSavingOrder(true);
+    try {
+      const orders = items.map((p, idx) => ({ id: p.id, sort_order: idx + 1 }));
+      const res = await fetch("/api/admin/pages/sort-order", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orders }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(err.message ?? "Failed to save order");
+      }
+      toast.success("Order saved");
+      list.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save order");
+      throw err;
+    } finally {
+      setSavingOrder(false);
+    }
+  };
 
   const openCreate = () => {
     setFormData({ title: "", slug: "", is_published: false, is_homepage: false });
@@ -302,8 +348,15 @@ export default function PagesPage() {
     }
   };
 
+  const visiblePages = list.data.filter((p) => p.page_type !== "site_header");
+
   const columns: Column<PageRecord>[] = [
-    { key: "title", label: "Title", sortable: true },
+    {
+      key: "title",
+      label: "Title",
+      sortable: true,
+      render: (row) => <span>{row.title}</span>,
+    },
     {
       key: "slug",
       label: "Slug",
@@ -338,11 +391,6 @@ export default function PagesPage() {
         </Badge>
       ),
     },
-    {
-      key: "is_homepage",
-      label: "Homepage",
-      render: (row) => <span className="text-xs text-muted-foreground">{row.is_homepage ? "✓" : "—"}</span>,
-    },
     ...(isSuper
       ? [{
           key: "tenants" as const,
@@ -362,20 +410,71 @@ export default function PagesPage() {
     <div className="flex flex-col gap-6 py-2">
       <PageHeader
         title={isSuper ? "All Pages" : "Pages"}
-        actions={!isSuper ? <Button size="sm" onClick={openCreate}>+ Add Page</Button> : undefined}
+        actions={!isSuper ? (
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/admin/header-footer">
+                <PanelTop className="h-4 w-4" />
+                Header &amp; Footer
+              </Link>
+            </Button>
+            <Button size="sm" onClick={openCreate}>+ Add Page</Button>
+          </div>
+        ) : undefined}
       />
 
       <DataView
         columns={columns}
-        data={list.data}
+        data={visiblePages}
         loading={list.isLoading}
-        onRefresh={() => { list.invalidate(); toast.info("Refreshed", { duration: 1500 }); }}
-        filter={{ search, onSearchChange: setSearch, searchPlaceholder: "Search by title\u2026" }}
+        onRefresh={list.invalidate}
+        reorderable
+        onSaveOrder={handleSaveOrder}
+        savingOrder={savingOrder}
+        filter={{
+          search,
+          onSearchChange: setSearch,
+          searchPlaceholder: "Search by title…",
+          filters: [
+            ...(isSuper ? [{
+              type: "combobox" as const,
+              label: "Tenant",
+              value: tenantFilter,
+              onChange: setTenantFilter,
+              options: tenantList.data.map(t => ({ value: String(t.id), label: String(t.name) })),
+              placeholder: "All tenants",
+              searchPlaceholder: "Search tenants…",
+              width: "200px",
+            }] : []),
+            {
+              type: "chips" as const,
+              multi: true,
+              inline: true,
+              value: statusFilter,
+              onChange: setStatusFilter,
+              options: [
+                {
+                  value: "published",
+                  label: "Published",
+                  color: { bg: "hsl(var(--success)/0.1)", text: "hsl(var(--success))", border: "hsl(var(--success)/0.2)" },
+                },
+                {
+                  value: "draft",
+                  label: "Draft",
+                },
+              ],
+            },
+          ],
+          hasFilters: search !== "" || statusFilter.length > 0 || tenantFilter !== "",
+          onClear: () => { setSearch(""); setStatusFilter([]); setTenantFilter(""); },
+        }}
         mode="table"
         emptyMessage="No pages found."
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        pageSize={list.pageSize}
+        onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
         rowActions={canUsePuck ? (row) => (
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Visual Editor" asChild>
             <Link href={`/admin/pages/${row.id}/edit`}>

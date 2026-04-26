@@ -226,7 +226,7 @@ packages/ui/src/
   │   │   └── Shell.tsx             ← current shell (search, breadcrumbs, theme toggle)
   │   ├── components/               ← generic admin component library
   │   │   ├── index.ts              ← barrel export
-  │   │   ├── DataView.tsx          ← table/card/grouped data display with pagination
+  │   │   ├── DataView.tsx          ← table/card/grouped data display with pagination, page-size selector, refresh toast, drag-to-reorder
   │   │   ├── CrudModal.tsx         ← Dialog for create/edit/view modes
   │   │   ├── ConfirmDialog.tsx     ← AlertDialog for destructive actions
   │   │   ├── Filter.tsx            ← search bar, pill tabs, dropdown filters
@@ -455,7 +455,7 @@ All admin list/CRUD pages follow the same composition pattern. There is no monol
 
 | Component | Import | Purpose |
 |---|---|---|
-| `DataView` | `@repo/ui/admin/components` | Table/card/grouped data display with pagination |
+| `DataView` | `@repo/ui/admin/components` | Table/card/grouped data display with pagination, page-size selector, refresh, and drag-to-reorder |
 | `CrudModal` | `@repo/ui/admin/components` | Dialog for create/edit (form) and view (read-only) modes |
 | `ConfirmDialog` | `@repo/ui/admin/components` | Destructive action confirmation |
 | `Filter` | `@repo/ui/admin/components` | Search bar, pill tab filters, dropdown filters |
@@ -475,9 +475,25 @@ All admin list/CRUD pages follow the same composition pattern. There is no monol
   loading={list.isLoading}
   mode="table"                         // "table" | "card" | "grouped"
   emptyMessage="No pages found."
+
+  // Pagination
   page={list.page}                     // Current page number
   totalPages={list.totalPages}         // Total pages from useSupabaseList
-  onPageChange={list.setPage}          // Page navigation
+  onPageChange={list.setPage}          // Prev/next arrows (shown when totalPages > 1)
+
+  // Page-size selector (dropdown left of arrows; pass both together)
+  pageSize={list.pageSize}
+  onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
+  // pageSizeOptions={[10, 25, 50, 100]}  // optional override
+
+  // Refresh button (toast fires automatically inside DataView)
+  onRefresh={list.invalidate}
+
+  // Drag-to-reorder (opt-in)
+  reorderable                          // adds Sort button to toolbar
+  onSaveOrder={handleSaveOrder}        // receives reordered T[] in new order
+  savingOrder={savingOrder}            // disables Save button while pending
+
   rowActions={(row) => (               // Action buttons per row
     <Button onClick={() => detailPanel.openPanel("view", row)}>View</Button>
   )}
@@ -688,6 +704,9 @@ export default function ItemsPage() {
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        pageSize={list.pageSize}
+        onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
+        onRefresh={list.invalidate}
         rowActions={(row) => (
           <>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => detailPanel.openPanel("view", row)}>

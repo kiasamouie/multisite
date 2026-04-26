@@ -817,6 +817,231 @@ The editor renders in a full-screen container and integrates with the admin layo
 
 ---
 
+## Block Componentization Pattern
+
+All Puck blocks follow a consistent, reusable pattern:
+
+### 1. Render Component
+**Location:** `packages/template/src/components/blocks/[BlockName].tsx`
+
+Responsible for displaying the block's content on the public site. Receives `content` prop containing the block's configuration from the database.
+
+```typescript
+import type { HeroBlockContent } from "../../types";
+
+interface HeroBlockProps {
+  content: HeroBlockContent;
+}
+
+export function HeroBlock({ content }: HeroBlockProps) {
+  const { title, subtitle, ctaText, ctaLink, backgroundImageId } = content;
+
+  return (
+    <section className="hero-section bg-gradient-to-r from-blue-500 to-purple-600 text-white py-24">
+      <div className="max-w-7xl mx-auto px-6">
+        <h1 className="text-4xl font-bold mb-4">{title}</h1>
+        <p className="text-lg mb-8">{subtitle}</p>
+        {ctaText && ctaLink && (
+          <a href={ctaLink} className="btn btn-primary">
+            {ctaText}
+          </a>
+        )}
+      </div>
+    </section>
+  );
+}
+```
+
+### 2. Editor Preview Component (Optional)
+If a custom Puck preview is needed (beyond auto-form), define it in the same file:
+
+```typescript
+export function HeroBlockPreview({ content }: HeroBlockProps) {
+  // Renders the WYSIWYG preview in Puck editor
+  return <HeroBlock content={content} />;
+}
+```
+
+If no preview component is exported, Puck auto-generates a form from the field config.
+
+### 3. Registry Entry
+**Location:** `packages/template/src/blocks/registry.ts`
+
+Register the block type with metadata:
+
+```typescript
+import { HeroBlock } from "../components/blocks/HeroBlock";
+
+const entries: BlockRegistryEntry[] = [
+  {
+    type: "hero_block",
+    label: "Hero Section",
+    category: "hero",
+    description: "Full-width hero with title, subtitle, and CTA button",
+    component: HeroBlock  // <-- Render component
+  },
+  // ... more blocks
+];
+```
+
+### 4. Field Configuration
+**Location:** `apps/web/src/lib/puck/config.tsx`
+
+Define the form fields that appear in the Puck editor:
+
+```typescript
+const BLOCK_FIELDS: Record<string, Record<string, unknown>> = {
+  hero_block: {
+    title: {
+      type: "text",
+      label: "Title"
+    },
+    subtitle: {
+      type: "textarea",
+      label: "Subtitle"
+    },
+    backgroundImageId: {
+      type: "custom",
+      label: "Background Image",
+      render: null  // Filled dynamically in editor.tsx
+    },
+    ctaText: {
+      type: "text",
+      label: "Button Text"
+    },
+    ctaLink: {
+      type: "custom",
+      label: "Button Link",
+      render: null  // Filled dynamically in editor.tsx
+    }
+  }
+};
+```
+
+**Key Points:**
+- Render component is imported directly by registry
+- Field config lives in Puck config, separate from component
+- Custom fields (media, links) use `type: "custom"` with `render: null` placeholder
+- Puck editor dynamically injects the proper render function for custom fields
+
+---
+
+## Puck Block Field Configuration
+
+### Field Types
+
+Standard Puck field types supported in `BLOCK_FIELDS`:
+
+| Type | Usage | Example |
+|------|-------|----------|
+| `text` | Single-line input | Title, Name, URL |
+| `textarea` | Multi-line input | Subtitle, Description, Rich Text |
+| `select` | Dropdown option picker | Alignment, Size, Variant |
+| `radio` | Radio button group | On/Off, Yes/No, Position |
+| `number` | Numeric input | Width, Height, Count |
+| `array` | Repeating item list | Gallery images, Team members, Testimonials |
+| `custom` | External field renderer | Media picker, Link picker, Date picker |
+| `external` | API-powered field | Content picker (blog posts, events) |
+
+### Custom Field Factories
+
+Custom fields use factory functions that return a React component. These live in `apps/web/src/lib/puck/fields/universal.tsx`:
+
+```typescript
+import {
+  createMediaPickerRender,
+  createLinkPickerRender,
+  createGalleryPickerRender,
+  createContentPickerRender,
+  createDatePickerRender,
+  createAddressPickerRender,
+  createEmojiPickerRender,
+} from "./fields/universal.tsx";
+```
+
+#### Media Picker
+Selects images/videos from tenant media library:
+
+```typescript
+backgroundImageId: {
+  type: "custom",
+  label: "Background Image",
+  render: createMediaPickerRender(tenantId, "image")
+}
+```
+
+#### Media Picker with `storeAs: "url"`
+For array fields (gallery, team, portfolio), store full URLs instead of IDs:
+
+```typescript
+gallery_block: {
+  images: {
+    type: "array",
+    label: "Images",
+    arrayFields: {
+      url: {
+        type: "custom",
+        render: createMediaPickerRender(tenantId, "image", { storeAs: "url" })
+      },
+      caption: { type: "text", label: "Caption" }
+    }
+  }
+}
+```
+
+**Why `storeAs: "url"`?**
+- Array fields with IDs require extra DB queries to resolve URLs at render time
+- Storing URLs directly eliminates that lookup overhead
+- Puck picker UI handles the ID-to-URL conversion transparently
+- See [CONFIG_DRIVEN_PAGES.md — Array Media Pickers](../CONFIG_DRIVEN_PAGES.md#array-media-pickers-storeas-url) for full details
+
+#### Link Picker
+UI for selecting page URLs or external links:
+
+```typescript
+ctaLink: {
+  type: "custom",
+  label: "Button Link",
+  render: createLinkPickerRender(tenantId)
+}
+```
+
+#### Content Picker
+Browser for blog posts, events, or other content types:
+
+```typescript
+featuredPost: {
+  type: "custom",
+  label: "Featured Post",
+  render: createContentPickerRender(tenantId, "posts")
+}
+```
+
+#### Array with Custom Fields
+Combine `type: "array"` with custom sub-fields:
+
+```typescript
+team_block: {
+  members: {
+    type: "array",
+    label: "Team Members",
+    arrayFields: {
+      name: { type: "text", label: "Name" },
+      imageUrl: {
+        type: "custom",
+        render: createMediaPickerRender(tenantId, "image", { storeAs: "url" })
+      },
+      title: { type: "text", label: "Title" },
+      bio: { type: "textarea", label: "Bio" }
+    }
+  }
+}
+```
+
+Puck automatically renders the array UI with add/remove buttons, and each item uses the configured field renderers.
+
+---
+
 ## Admin Component Library (`@repo/ui/admin/components`)
 
 Each component lives in its own subdirectory (`ComponentName/ComponentName.tsx` + `ComponentName/index.ts`). Here is the full inventory with usage:
@@ -1654,6 +1879,66 @@ If classes are missing from compiled output, verify these resolve correctly from
 .nav-active-accent { @apply border-l-2 border-primary bg-sidebar-accent; }
 ```
 
+### Style Composition: Hex + Opacity Helper
+
+When combining a hex colour with opacity (e.g., from block-level styling fields), use the `composeBackground` helper:
+
+**Location:** `apps/web/src/components/site/_compose-bg.ts`
+
+```typescript
+export function composeBackground(
+  color: string | undefined,
+  opacity: number | undefined,
+): string | undefined {
+  const trimmed = color?.trim();
+  const hasColor = !!trimmed;
+  const op = opacity ?? 100;
+
+  if (!hasColor && op >= 100) return undefined;  // Use fallback
+  if (op <= 0) return "transparent";
+  if (!hasColor) return undefined;               // Let fallback handle opacity
+  if (op >= 100) return trimmed;                 // Return hex as-is
+
+  // Parse hex (#rgb or #rrggbb) to rgba
+  const hex = trimmed!.startsWith("#") ? trimmed!.slice(1) : trimmed!;
+  let r: number, g: number, b: number;
+  if (/^[0-9a-fA-F]{3}$/.test(hex)) {
+    r = parseInt(hex[0]! + hex[0]!, 16);
+    g = parseInt(hex[1]! + hex[1]!, 16);
+    b = parseInt(hex[2]! + hex[2]!, 16);
+  } else if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+    r = parseInt(hex.slice(0, 2), 16);
+    g = parseInt(hex.slice(2, 4), 16);
+    b = parseInt(hex.slice(4, 6), 16);
+  } else {
+    return trimmed;  // Unrecognised format
+  }
+  const a = Math.max(0, Math.min(1, op / 100));
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+```
+
+**Usage:**
+```typescript
+// In a component that accepts background + opacity settings
+const customBg = composeBackground(
+  headerConfig?.backgroundColor,  // e.g. "#0f172a"
+  headerConfig?.backgroundOpacity, // e.g. 85 (0-100 scale)
+);
+
+return (
+  <header style={{ background: customBg ?? "var(--tenant-bg, #fff)" }}>
+    {/* content */}
+  </header>
+);
+```
+
+**Returns:**
+- `undefined` if no colour and opacity ≥ 100 → caller uses fallback
+- `"transparent"` if opacity ≤ 0
+- Original hex if opacity ≥ 100
+- `rgba(r, g, b, a)` if hex + partial opacity
+
 ### No-Line Design Rule
 
 No hard borders. Instead:
@@ -1796,6 +2081,128 @@ const columns: Column<MyRecord>[] = [
   ...(isSuper ? [{ key: "tenants", label: "Tenant", render: (item) => item.tenants?.name ?? "—" }] : []),
 ];
 ```
+
+---
+
+## Theme Settings Form: Preset Themes Pattern
+
+**Location:** `apps/web/src/app/admin/settings/theme/`
+
+The theme settings page demonstrates a reusable pattern for forms with preset options (preset themes that apply multiple fields at once).
+
+### Pattern: Presets with Manual Override
+
+**Structure:**
+1. **Preset grid** — Visual cards showing preset options
+2. **Active preset tracking** — Detect which preset is currently active
+3. **Manual field controls** — User can tweak individual fields
+4. **Auto-clear preset** — Clicking any manual control clears the active preset indicator
+
+**Type definition:**
+```typescript
+interface PresetTheme {
+  id: string;
+  name: string;
+  palette: {
+    primary: string;      // hex colour
+    accent: string;
+    background: string;
+    foreground: string;
+  };
+}
+```
+
+**Constant list:**
+```typescript
+const PRESETS: PresetTheme[] = [
+  {
+    id: "ocean",
+    name: "Ocean",
+    palette: {
+      primary: "#0284c7",
+      accent: "#06b6d4",
+      background: "#f0f9ff",
+      foreground: "#0c4a6e",
+    },
+  },
+  // ... 9 more presets
+];
+```
+
+**State management:**
+```typescript
+export function ThemeForm({ initial }: ThemeFormProps) {
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [primary, setPrimary] = useState(initial.palette?.primary ?? "");
+  // ... other colour states
+
+  const applyPreset = (preset: PresetTheme) => {
+    setActivePreset(preset.id);
+    setPrimary(preset.palette.primary);
+    setAccent(preset.palette.accent);
+    setBackground(preset.palette.background);
+    setForeground(preset.palette.foreground);
+  };
+
+  // When user manually edits any field:
+  const handlePrimaryChange = (v: string) => {
+    setPrimary(v);
+    setActivePreset(null);  // ← Clear active preset
+  };
+```
+
+**UI: Preset card**
+```typescript
+<button
+  onClick={() => applyPreset(preset)}
+  className={cn(
+    "group relative flex flex-col overflow-hidden rounded-lg border-2 transition-all",
+    activePreset === preset.id
+      ? "border-primary ring-2 ring-primary ring-offset-2"  // Active highlight
+      : "border-border hover:border-primary/50",
+  )}
+>
+  {/* Colour swatch */}
+  <div
+    className="flex h-16 w-full items-center justify-center gap-1.5 px-2"
+    style={{ background: preset.palette.background }}
+  >
+    <span
+      className="h-6 w-6 rounded-full shadow-sm"
+      style={{ background: preset.palette.primary }}
+    />
+    <span
+      className="h-6 w-6 rounded-full shadow-sm"
+      style={{ background: preset.palette.accent }}
+    />
+  </div>
+  {/* Label */}
+  <div
+    className="px-2 py-1.5 text-center text-xs font-semibold text-white"
+    style={{ background: preset.palette.primary }}
+  >
+    {preset.name}
+  </div>
+</button>
+```
+
+**Grid render:**
+```typescript
+<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+  {PRESETS.map((preset) => (
+    <button key={preset.id} onClick={() => applyPreset(preset)}>
+      {/* ... card ui above ... */}
+    </button>
+  ))}
+</div>
+```
+
+### Key Points
+
+- **Presets as constants** — Stored in code, not DB
+- **Active state is client-side** — No server round-trip to detect active preset
+- **Manual edits clear preset** — Prevents confusion when user tweaks one colour
+- **All fields still saved normally** — Presets just populate the form; save writes the palette to `site_settings`
 
 ---
 

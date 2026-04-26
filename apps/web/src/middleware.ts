@@ -193,6 +193,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Exclude:
+    // - Next internals & static assets
+    // - The media upload route — Edge middleware truncates bodies > ~4MB,
+    //   which corrupts large MP4/audio uploads. The route handles its own auth.
+    "/((?!_next/static|_next/image|favicon.ico|api/admin/media/upload|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

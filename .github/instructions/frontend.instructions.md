@@ -337,6 +337,149 @@ import { redirect } from "next/navigation";
 
 ---
 
+---
+
+## 🎨 Settings Form Patterns
+
+### Theme Settings Form
+**Location:** `apps/web/src/app/admin/settings/theme/theme-form.tsx`
+
+The theme form displays:
+1. **Preset themes grid** — 10 named presets (Default, Ocean, Forest, Sunset, Rose, Violet, Midnight, Slate, Amber, Ruby) that apply all palette colours on click
+2. **Colour customization section** — Individual hex + colour picker inputs for Primary, Accent, Background, Foreground
+3. **Typography section** — Font family selector
+
+**Pattern:**
+```typescript
+"use client";
+
+interface PresetTheme {
+  id: string;
+  name: string;
+  palette: { primary, accent, background, foreground };
+}
+
+const PRESETS: PresetTheme[] = [/* ... */];
+
+export function ThemeForm({ initial }: ThemeFormProps) {
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const applyPreset = (preset) => {
+    setActivePreset(preset.id);
+    setPrimary(preset.palette.primary);
+    // ... set other colours
+  };
+
+  // Render preset grid with highlight on active
+  // Render colour inputs (clicking any = clear activePreset)
+  // Save calls saveSettingsAction("theme", {...})
+}
+```
+
+**Key Design:** Presets are TypeScript constants, not DB-stored. Active preset is detected client-side by comparing current palette values. Manual edits clear the active state.
+
+---
+
+## 📦 Public Site Styling: Header & Footer Blocks
+
+### Background & Opacity Controls
+
+Both `site_header` and `site_footer` Puck blocks now support per-block styling:
+
+**In Puck Editor Config** (`apps/web/src/lib/puck/config.tsx`):
+```typescript
+site_header: {
+  // ... existing fields (sticky, borderBottom, etc.)
+  backgroundColor: { type: "text", label: "Background colour (hex)" },
+  backgroundOpacity: { type: "number", label: "Opacity (0-100)" },
+  backdropBlur: { type: "radio", label: "Backdrop blur" },  // header only
+},
+site_footer: {
+  // ... existing fields
+  backgroundColor: { type: "text", label: "Background colour (hex)" },
+  backgroundOpacity: { type: "number", label: "Opacity (0-100)" },
+},
+```
+
+**Type Definition** (`packages/lib/src/tenant/context.ts`):
+```typescript
+export interface SiteHeaderConfig {
+  // ... existing
+  backgroundColor?: string;      // hex (#rrggbb)
+  backgroundOpacity?: number;    // 0-100
+  backdropBlur?: boolean;
+}
+```
+
+**Block Cache Mapping** (`apps/web/src/lib/cache.ts`):
+```typescript
+function coerceNumber(v: unknown, fallback: number): number {
+  if (typeof v === "number") return v;
+  const n = Number(v);
+  if (Number.isFinite(n)) return n;
+  return fallback;
+}
+
+function coerceString(v: unknown): string | undefined {
+  if (typeof v === "string" && v.trim() !== "") return v.trim();
+  return undefined;
+}
+
+// In getHeaderConfig() / getFooterConfig():
+return {
+  // ...
+  backgroundColor: coerceString(c.backgroundColor),
+  backgroundOpacity: coerceNumber(c.backgroundOpacity, 100),
+  backdropBlur: coerceBool(c.backdropBlur, true),
+};
+```
+
+**Styling Composition** (`apps/web/src/components/site/_compose-bg.ts`):
+```typescript
+export function composeBackground(
+  color: string | undefined,
+  opacity: number | undefined,
+): string | undefined {
+  if (!color) return undefined;     // Inherit tenant theme
+  if (opacity <= 0) return "transparent";
+  if (opacity >= 100) return color; // Return hex as-is
+  
+  // Parse hex (#rgb or #rrggbb) and convert to rgba
+  const hex = color.startsWith("#") ? color.slice(1) : color;
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const a = opacity / 100;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+```
+
+**Component Application** (`apps/web/src/components/site/site-nav.tsx`):
+```typescript
+export function SiteNav({ headerConfig }: SiteNavProps) {
+  const blur = headerConfig?.backdropBlur ?? true;
+  const customBg = composeBackground(
+    headerConfig?.backgroundColor,
+    headerConfig?.backgroundOpacity,
+  );
+
+  return (
+    <header
+      className={[
+        isSticky ? "sticky top-0 z-50" : "",
+        blur ? "backdrop-blur" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={{
+        background: customBg ?? "var(--tenant-bg, #fff)",
+      }}
+    >
+```
+
+**Defaults:** If no custom background is set, falls back to `var(--tenant-bg, #fff)` (the tenant's theme palette background colour).
+
+---
+
 ## 📋 Checklist: Adding a New Admin Page
 
 - [ ] Created route in `apps/web/src/app/admin/[resource]/`

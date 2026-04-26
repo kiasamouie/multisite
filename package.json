@@ -8,7 +8,8 @@
     "db:migrate": "supabase db push",
     "db:reset": "supabase db reset",
     "db:start": "supabase start",
-    "db:stop": "supabase stop"
+    "db:stop": "supabase stop",
+    "db:types": "supabase gen types typescript --linked > packages/lib/src/supabase/types.ts"
   },
   "devDependencies": {
     "supabase": "^2.84.4",

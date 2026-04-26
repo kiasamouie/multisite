@@ -1,16 +1,23 @@
 import type { ContactBlockContent } from "../../types";
+import { readStyledText } from "../../lib/content-style";
+import { sectionAttrs, headingAttrs, textAttrs } from "../../lib/styled-block";
 
 interface ContactBlockProps {
   content: ContactBlockContent;
 }
 
 export function ContactBlock({ content }: ContactBlockProps) {
+  const title = readStyledText(content.title);
+  const subtitle = readStyledText(content.subtitle);
+  const sec = sectionAttrs("bg-muted/50 px-4 py-16", content.sectionStyle);
+  const heading = headingAttrs("mb-4 text-3xl font-bold", title.style);
+  const sub = textAttrs("mb-8 text-muted-foreground", subtitle.style);
   return (
-    <section className="bg-muted/50 px-4 py-16">
+    <section className={sec.className} style={sec.style}>
       <div className="mx-auto max-w-2xl text-center">
-        <h2 className="mb-4 text-3xl font-bold">{content.title}</h2>
-        {content.subtitle && (
-          <p className="mb-8 text-muted-foreground">{content.subtitle}</p>
+        <h2 className={heading.className} style={heading.style}>{title.value}</h2>
+        {subtitle.value && (
+          <p className={sub.className} style={sub.style}>{subtitle.value}</p>
         )}
         <div className="mb-8 flex flex-col gap-2 text-sm text-muted-foreground">
           {content.email && <p>Email: {content.email}</p>}

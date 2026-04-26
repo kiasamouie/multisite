@@ -1,23 +1,111 @@
 import { cookies } from "next/headers";
 import { revalidateTag } from "next/cache";
+import Busboy from "busboy";
+import { Readable } from "stream";
 import { createServerClient } from "@repo/lib/supabase/server";
 import { createAdminClient } from "@repo/lib/supabase/admin";
 import { getPlatformAdmin } from "@repo/lib/tenant/platform";
 import { resolveTenantsByUserId } from "@repo/lib/tenant/resolver";
-import { ensurePageMediaBlock } from "@repo/lib/media/blocks";
 import type { Database, Json } from "@repo/lib/supabase/types";
 import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+// Force Node.js runtime so request.formData() handles large multipart bodies
+// reliably (the Edge runtime has a 4MB limit).
+export const runtime = "nodejs";
+
+/**
+ * Parse multipart/form-data by first buffering the entire request body, then
+ * feeding it into busboy. Buffering avoids Web→Node stream boundary issues
+ * that previously truncated large MP4 uploads.
+ */
+async function parseUploadForm(request: Request): Promise<{
+  file: Buffer;
+  filename: string;
+  mimeType: string;
+  tenantIdStr: string;
+  tagsStr: string | null;
+}> {
+  const contentType = request.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("multipart/form-data")) {
+    throw new Error("Expected multipart/form-data content type");
+  }
+
+  // Buffer the entire body up front — reliable for any size in Node runtime
+  const arrayBuffer = await request.arrayBuffer();
+  const bodyBuffer = Buffer.from(arrayBuffer);
+  if (bodyBuffer.length === 0) {
+    throw new Error("Request body is empty");
+  }
+
+  return new Promise((resolve, reject) => {
+    let fileBuffer: Buffer | null = null;
+    let filename = "upload";
+    let mimeType = "application/octet-stream";
+    let tenantIdStr = "";
+    let tagsStr: string | null = null;
+    let settled = false;
+
+    const busboy = Busboy({
+      headers: { "content-type": contentType },
+      limits: { fileSize: 500 * 1024 * 1024, files: 1 },
+    });
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      reject(err);
+    };
+
+    busboy.on("file", (_fieldname, fileStream, info) => {
+      filename = info.filename || "upload";
+      mimeType = info.mimeType || "application/octet-stream";
+      const chunks: Buffer[] = [];
+      fileStream.on("data", (chunk: Buffer) => chunks.push(chunk));
+      fileStream.on("limit", () => fail(new Error("File exceeds 500MB limit")));
+      fileStream.on("end", () => {
+        fileBuffer = Buffer.concat(chunks);
+      });
+      fileStream.on("error", (err: unknown) =>
+        fail(err instanceof Error ? err : new Error("File stream error"))
+      );
+    });
+
+    busboy.on("field", (name, value) => {
+      if (name === "tenantId") tenantIdStr = value;
+      else if (name === "tags") tagsStr = value;
+    });
+
+    busboy.on("close", () => {
+      if (settled) return;
+      settled = true;
+      if (!fileBuffer || fileBuffer.length === 0) {
+        reject(new Error("No file received in upload"));
+        return;
+      }
+      resolve({ file: fileBuffer, filename, mimeType, tenantIdStr, tagsStr });
+    });
+
+    busboy.on("error", (err: unknown) =>
+      fail(err instanceof Error ? err : new Error("Upload parse error"))
+    );
+
+    // Feed the complete buffer into busboy via a single-shot Readable stream
+    Readable.from(bodyBuffer).pipe(busboy);
+  });
+}
 
 /**
  * POST /api/admin/media/upload
  * Handles media file uploads to Supabase Storage and creates media records.
- * 
+ *
  * Request: FormData with:
  *   - file: File
  *   - tenantId: string (number)
  *   - pageIds: string (JSON array of page IDs, optional)
  *   - usageType: string (optional, default 'general')
- * 
+ *
  * Response: { filename, url, mediaId, associatedPages }
  */
 export async function POST(request: Request) {
@@ -33,28 +121,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
-    const tenantIdStr = formData.get("tenantId") as string;
-    const pageIdsStr = formData.get("pageIds") as string | null;
-    const usageType = formData.get("usageType") as string | null;
-    const tenantId = parseInt(tenantIdStr, 10);
-
-    if (!file || !tenantId) {
-      return NextResponse.json({ message: "Missing file or tenantId" }, { status: 400 });
+    // Parse multipart form using native request.formData()
+    let parsedForm: Awaited<ReturnType<typeof parseUploadForm>>;
+    try {
+      parsedForm = await parseUploadForm(request);
+    } catch (parseErr) {
+      console.error("Multipart parse error:", parseErr);
+      return NextResponse.json(
+        { message: parseErr instanceof Error ? parseErr.message : "Failed to parse upload" },
+        { status: 400 }
+      );
     }
 
-    // Parse page IDs if provided
-    let pageIds: number[] = [];
-    if (pageIdsStr) {
+    const { file: buffer, filename, mimeType, tenantIdStr, tagsStr } = parsedForm;
+    const tenantId = parseInt(tenantIdStr, 10);
+    const size = buffer.length;
+
+    if (!tenantId) {
+      return NextResponse.json({ message: "Missing tenantId" }, { status: 400 });
+    }
+
+    // Parse tags if provided
+    let tags: string[] = [];
+    if (tagsStr) {
       try {
-        pageIds = JSON.parse(pageIdsStr) as number[];
-        if (!Array.isArray(pageIds)) {
-          pageIds = [];
-        }
+        tags = JSON.parse(tagsStr) as string[];
+        if (!Array.isArray(tags)) tags = [];
+        tags = tags.filter((t) => typeof t === "string" && t.trim()).map((t) => t.trim());
       } catch {
-        // Ignore parsing errors
-        pageIds = [];
+        tags = [];
       }
     }
 
@@ -67,13 +162,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: "Not authorized for this tenant" }, { status: 403 });
       }
     }
-
-    // Read file bytes and metadata
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const filename = file.name;
-    const mimeType = file.type;
-    const size = file.size;
 
     // Get admin client for storage operations
     const adminSupabase = createAdminClient();
@@ -134,22 +222,18 @@ export async function POST(request: Request) {
       }
     }
 
-    // Include usage type in metadata if provided
-    if (usageType) {
-      metadataObj.usageType = usageType;
-    }
-
     // Convert to Json type for database insert
     const metadata: Json = metadataObj as Json;
 
     // Create media record in database
     // Store the storage path (not the signed URL) so the download endpoint
     // can regenerate fresh signed URLs on demand without them expiring.
-    const insertData: Database["public"]["Tables"]["media"]["Insert"] = {
+    const insertData: Database["public"]["Tables"]["media"]["Insert"] & { tags?: string[] } = {
       tenant_id: tenantId,
       filename,
       url: storagePath,
       metadata,
+      ...(tags.length > 0 ? { tags } : {}),
     };
     
     const { data: mediaData, error: insertError } = await supabase
@@ -168,59 +252,14 @@ export async function POST(request: Request) {
     }
 
     const mediaId = mediaData.id;
-    let associatedPages: number[] = [];
 
-    // Create associations if page IDs provided
-    if (pageIds.length > 0) {
-      // Validate that all pages belong to the same tenant and exist
-      const { data: validatePages } = await adminSupabase
-        .from("pages")
-        .select("id, tenant_id")
-        .in("id", pageIds)
-        .eq("tenant_id", tenantId);
-
-      if (validatePages && validatePages.length > 0) {
-        const validPageIds = validatePages.map((p) => p.id);
-
-        // Create associations for valid pages
-        const associations = validPageIds.map((pageId) => ({
-          media_id: mediaId,
-          page_id: pageId,
-          usage_type: usageType || "general",
-          position: 0,
-        }));
-
-        const { error: assocError } = await adminSupabase
-          .from("media_page_associations")
-          .insert(associations);
-
-        if (assocError) {
-          console.error("Failed to create associations:", assocError);
-          // Association failure is not fatal - media was still created
-        } else {
-          associatedPages = validPageIds;
-        }
-      }
-    }
-
-    // Auto-create page_media block for each associated page (idempotent)
-    if (associatedPages.length > 0) {
-      const blockUsageType = usageType || "general";
-      for (const pid of associatedPages) {
-        await ensurePageMediaBlock(adminSupabase, pid, blockUsageType);
-      }
-      revalidateTag("pages", "max");
-    }
-
-    // Invalidate media cache so pages re-fetch fresh associations
-    revalidateTag("media", "max");
+    revalidateTag("media");
 
     return NextResponse.json(
       { 
         filename, 
         url: publicUrl,
         mediaId,
-        associatedPages,
       },
       { status: 200 }
     );

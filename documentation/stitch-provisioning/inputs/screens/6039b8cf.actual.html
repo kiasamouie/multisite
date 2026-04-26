@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BIBI Persian Kitchen | An Editorial Tale of Flavor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#e9c176",
+                        "on-surface": "#221a0e",
+                        "tertiary-fixed": "#f4ddde",
+                        "primary-fixed-dim": "#ffb3b0",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#410006",
+                        "surface-dim": "#e7d8c4",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#534344",
+                        "outline": "#8b716f",
+                        "on-secondary-container": "#785a1a",
+                        "secondary": "#775a19",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#891b23",
+                        "inverse-on-surface": "#feefda",
+                        "background": "#fff8f3",
+                        "surface-container-highest": "#f0e0cc",
+                        "on-secondary-fixed-variant": "#5d4201",
+                        "surface-bright": "#fff8f3",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#fff2e1",
+                        "outline-variant": "#dfbfbd",
+                        "on-error-container": "#93000a",
+                        "on-surface-variant": "#584140",
+                        "inverse-primary": "#ffb3b0",
+                        "secondary-fixed": "#ffdea5",
+                        "primary-fixed": "#ffdad8",
+                        "tertiary": "#3c2e2f",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#fed488",
+                        "surface-variant": "#f0e0cc",
+                        "on-primary-container": "#ff9c99",
+                        "surface-container-high": "#f5e6d2",
+                        "on-background": "#221a0e",
+                        "tertiary-fixed-dim": "#d7c1c2",
+                        "tertiary-container": "#544445",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#6b0110",
+                        "surface": "#fff8f3",
+                        "on-tertiary-container": "#c7b2b3",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#251819",
+                        "on-secondary-fixed": "#261900",
+                        "surface-container": "#fbecd7",
+                        "inverse-surface": "#382f22",
+                        "primary-container": "#8b1d24",
+                        "surface-tint": "#aa3438"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Noto Serif"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .persian-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l5 25 25 5-25 5-5 25-5-25-25-5 25-5z' fill='%238b716f' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#fff8f3]/80 dark:bg-[#221a0e]/80 backdrop-blur-xl flex justify-between items-center px-12 py-6 max-w-none w-full">
+<div class="text-3xl font-bold tracking-tighter text-[#6b0110] dark:text-[#ffb4ab]">BIBI</div>
+<div class="hidden md:flex gap-12 items-center">
+<a class="font-noto-serif uppercase tracking-widest text-xs text-[#6b0110] dark:text-[#ffb4ab] border-b border-[#6b0110] transition-colors duration-300" href="#">The Kitchen</a>
+<a class="font-noto-serif uppercase tracking-widest text-xs text-[#221a0e] dark:text-[#fff8f3] hover:text-[#775a19] transition-colors duration-300" href="#">Menu</a>
+<a class="font-noto-serif uppercase tracking-widest text-xs text-[#221a0e] dark:text-[#fff8f3] hover:text-[#775a19] transition-colors duration-300" href="#">Private Dining</a>
+<a class="font-noto-serif uppercase tracking-widest text-xs text-[#221a0e] dark:text-[#fff8f3] hover:text-[#775a19] transition-colors duration-300" href="#">Our Story</a>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary px-8 py-3 rounded-full font-label text-xs uppercase tracking-[0.2em] transition-all transform hover:scale-95 duration-200">
+            Reserve
+        </button>
+</nav>
+<main>
+<!-- Hero Section -->
+<section class="relative h-screen flex items-center overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover brightness-75 scale-105" data-alt="Luxurious dimly lit Persian restaurant interior with ornate velvet seating, warm atmospheric lighting, and high-end editorial dining room ambiance" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDefjrTJoneym4ew3UevMAKvrDzGHOw0Z1Tyq8M3a8FXfLZJISUMnDdm23PXjLkfCLNbyZ2qGgvQA0qQLTFlzoEpBE7fMKPanHXWhiISsjB00RzWEoSIHyIkAu-IG5Sf5BkB-6q8QK6Lsz_9alykdXtKDhJTeuUbvBiXu6TrAuj9pCG4QtphR-qCrPoCAxtAJvNN56-sQ6CasWcLyjirgeUcxwEFcGjKzPYxNtp2x-AzfFmvoaceJn919bXFIxk6bSDYMwWp0hIqgFh"/>
+</div>
+<div class="relative z-10 w-full px-12 md:px-24">
+<div class="max-w-4xl">
+<span class="inline-block font-label text-secondary-fixed-dim uppercase tracking-[0.3em] text-xs mb-6">Established in Tradition</span>
+<h1 class="font-headline text-5xl md:text-8xl text-white leading-[1.1] mb-8 tracking-tight">
+                        A Culinary Silk <br/>
+<span class="italic font-light">Road Journey.</span>
+</h1>
+<div class="flex flex-wrap gap-6 items-center">
+<button class="bg-primary text-on-primary px-10 py-4 rounded-full font-label text-sm uppercase tracking-widest hover:bg-primary-container transition-all">
+                            View The Menu
+                        </button>
+<button class="flex items-center gap-3 text-white font-label text-sm uppercase tracking-widest group">
+<span class="w-12 h-[1px] bg-white group-hover:w-16 transition-all"></span>
+                            Our Story
+                        </button>
+</div>
+</div>
+</div>
+<!-- Scroll Indicator -->
+<div class="absolute bottom-12 left-12 flex flex-col items-center gap-4 text-white/60">
+<span class="font-label text-[10px] uppercase tracking-[0.4em] rotate-90 origin-left translate-x-2">Scroll</span>
+<div class="w-[1px] h-24 bg-gradient-to-b from-white/60 to-transparent"></div>
+</div>
+</section>
+<!-- Legacy Section: A Rainbow Over The Table -->
+<section class="py-32 bg-surface overflow-hidden">
+<div class="max-w-7xl mx-auto px-12">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+<div class="lg:col-span-5 z-10 relative">
+<span class="font-label text-secondary uppercase tracking-[0.3em] text-xs mb-4 block">The Legacy</span>
+<h2 class="font-headline text-4xl md:text-6xl text-on-surface mb-8 leading-tight">
+                            A Rainbow Over <br/>The Table
+                        </h2>
+<p class="font-body text-on-surface-variant text-lg leading-relaxed mb-8 max-w-md">
+                            Persian cuisine is not just about sustenance; it is an editorial of spices, colors, and centuries of hospitality. BIBI celebrates the heritage of the kitchen—where saffron meets pomegranate in a dance of flavor.
+                        </p>
+<div class="border-l border-primary/20 pl-8 italic font-headline text-xl text-primary/80">
+                            "The kitchen is the heart, the table is the canvas."
+                        </div>
+</div>
+<div class="lg:col-span-7 relative">
+<div class="absolute -top-12 -right-12 w-64 h-64 persian-pattern rounded-full"></div>
+<div class="relative rounded-xl overflow-hidden shadow-2xl transform lg:translate-x-12">
+<img class="w-full aspect-[4/5] object-cover" data-alt="Artisanal Persian flatbread being prepared on a marble surface with scattered spices and dramatic golden hour sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQNlGSV9mppG1JA3aZCfQIJBeh2yu0kwb3dcsIPBo96GCbnkA2gtWePNAe-JvpVtjUWopSpq3TbUjfO6hN5cHyMuSGxIQEWyvDQDbIqLuAPOdcDTq8OO8hHBMR0lM3I0L6x3yvrCE4odwtqd5G2rbKR-uI2Tj7sPgARRjsgkYtz5V8fmvJndpw7QkjGWA_oorGGGRfNigSwtgM7com3Eu8OnwLgODewctEtZkGN5Rdt3RkgW2xodPJVIi9brM5Pv-X-3rFhp6-DyxO"/>
+</div>
+<div class="absolute -bottom-8 -left-8 bg-surface-container-high p-8 rounded-xl max-w-xs shadow-lg hidden md:block">
+<h4 class="font-headline text-lg mb-2">Heritage Grains</h4>
+<p class="font-body text-xs text-on-surface-variant">Our bread is baked fresh every hour in our traditional clay oven.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Signature Dishes: Bento Grid Layout -->
+<section class="py-32 bg-surface-container-low">
+<div class="max-w-7xl mx-auto px-12">
+<div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+<div>
+<span class="font-label text-secondary uppercase tracking-[0.3em] text-xs mb-4 block">The Signature</span>
+<h2 class="font-headline text-4xl md:text-6xl text-on-surface">Curated Plates</h2>
+</div>
+<a class="font-label text-sm uppercase tracking-widest text-primary border-b border-primary/20 pb-1 hover:border-primary transition-all" href="#">Full Menu Collection</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Large Dish Card -->
+<div class="md:col-span-2 relative group overflow-hidden rounded-full aspect-[16/9]">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Top-down view of saffron-infused basmati rice garnished with barberries and pistachios on a decorative ceramic plate" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcYFdXYgV6J3pwDvEphhqvfCyKIgwiK6bvtGUN5sKxhJ8cct5UReKFyg3tXFXO13W9fVQI1AHh1apvckwCuRoRJlgDOVEjoSB1ga0DEEQptdOX3zPwopFHUeX1SCmwwnvsd-NyARlBVREbSWHa5Dc5NrE9XcaRMFRdARjUAY-bcG49VXy4qcr1zOEey_hASMPTCwOv0inwZlJ5qpGjTdy3YS2iwjaAgB6rLU5wR6jupIrtMEAZIyK-4qHQgodiCHroqVLXXeOumEDM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-12">
+<span class="text-secondary-fixed-dim font-label text-xs uppercase tracking-widest mb-2">Chef's Special</span>
+<h3 class="text-white font-headline text-3xl">Jeweled Saffron Rice</h3>
+</div>
+</div>
+<!-- Vertical Dish Card -->
+<div class="relative group overflow-hidden rounded-full aspect-[9/12]">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Glistening lamb kebabs served with grilled tomatoes and fresh herbs on an artisanal plate" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAVAyqPmllFnPEgpAp0_l1CZSS7TWcCRE6HY4zJnqYVvHk-w1Mry7BAQH6Wyd5i72RiLygeDMSjrFc8ddPeDQzLSa6xr91j3WEgTqjZ09suV-vllqjF4mZKSNslZpMuQ7YgAx6habe2uCyq3E-Kpar6d-nQ6w104v4siMNJjsXlggLdk5Xfjgcnly3aZchHC7F5EvyegYss9u75yAOYQWyvEGeX-6I-2pYB565qQ1dpLCkBk0LU4LIMyKH5wWh20q9jHh3wWXmO0md"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-12">
+<h3 class="text-white font-headline text-2xl">Barg Kebab</h3>
+</div>
+</div>
+<!-- Small Square Dish Card -->
+<div class="relative group overflow-hidden rounded-full aspect-square">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Vibrant mezze platter with hummus, pomegranates, and fresh mint sprigs in soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAf0lrjDvEKS9JCbiDleJR-aLX2ZEN94xqX-HZ5v4QW1PDMA95rRjFp1VPWLQY5a4I-yAR4vjUcbktQBs4-vYv--GB_VBlVcTFGcZolX0stogYiR41A1qZjaVJ7HG3iwkHZyJMLp4Tupb59FgaWR5qHoaCPj7TJZeW743EyiLANVbqIn33YmgLeD6Eu5BvqCwKt68e6ubHySKoyp_BwtzBwNsy3cN-jzgFBgu3DS_UDIPTzMtGwCPGu3CfXiatDk9f1bFEeiWhsSFQX"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-12">
+<h3 class="text-white font-headline text-2xl">Mezze Garden</h3>
+</div>
+</div>
+<!-- Text Statement Card -->
+<div class="md:col-span-2 bg-primary-container rounded-full p-16 flex items-center justify-center text-center">
+<div class="max-w-md">
+<span class="material-symbols-outlined text-secondary-fixed-dim text-4xl mb-6" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+<h3 class="font-headline text-3xl text-on-primary-container mb-4">The Pomegranate Philosophy</h3>
+<p class="text-on-primary-container/80 font-body text-sm leading-relaxed">Each dish is a balance of 'Garm' (Warm) and 'Sard' (Cold) ingredients—a millennia-old approach to harmony on the palate.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Booking Section -->
+<section class="relative py-40 overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover brightness-[0.3]" data-alt="Atmospheric view of a candlelit restaurant table at night with crystal glassware and deep shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKG4Nx-8YpQfP_SBABUguIKc_GNjRnNODuiUegyCqzwNRG55Xu9j0F_-JVSLGbLRKpoi6IqYAlARrOjSZdtped70mkDHC6w8ZlBSvrOy9ZJaCg_0pdoE36aW0vAbJndYY1CmtSij-dAinxpd0YbUtXcuXStlKgKxKFGSiJx0qOlayR_JSTQ8z9ouylW4SKPqeXCYFmrit2j-ZsSXWOZtZhDSGnfIwA0DGcivyi9nsmaPBiH3t9ZYVfUUV9s3RHhMJqKhl8-ueRr5--"/>
+</div>
+<div class="relative z-10 max-w-4xl mx-auto text-center px-12">
+<h2 class="font-headline text-5xl md:text-7xl text-white mb-12">Host Your Evening</h2>
+<div class="bg-surface/5 backdrop-blur-md border border-white/10 p-12 rounded-xl">
+<form class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="text-left">
+<label class="block font-label text-[10px] uppercase tracking-widest text-white/60 mb-2">Guests</label>
+<input class="w-full bg-transparent border-b border-white/20 text-white py-2 focus:outline-none focus:border-secondary transition-all" placeholder="2 Persons" type="number"/>
+</div>
+<div class="text-left">
+<label class="block font-label text-[10px] uppercase tracking-widest text-white/60 mb-2">Date</label>
+<input class="w-full bg-transparent border-b border-white/20 text-white py-2 focus:outline-none focus:border-secondary transition-all" type="date"/>
+</div>
+<div class="text-left">
+<label class="block font-label text-[10px] uppercase tracking-widest text-white/60 mb-2">Time</label>
+<select class="w-full bg-transparent border-b border-white/20 text-white py-2 focus:outline-none focus:border-secondary transition-all appearance-none">
+<option class="bg-on-surface">19:00</option>
+<option class="bg-on-surface">20:00</option>
+<option class="bg-on-surface">21:00</option>
+</select>
+</div>
+</form>
+<button class="w-full bg-secondary text-white py-5 rounded-full font-label uppercase tracking-[0.3em] text-sm hover:bg-secondary-fixed-dim transition-colors">
+                        Check Availability
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#fff8f3] dark:bg-[#221a0e] w-full py-16 px-12 border-t border-[#8b716f]/10">
+<div class="flex flex-col md:flex-row justify-between items-end w-full">
+<div class="w-full md:w-1/3 mb-12 md:mb-0">
+<div class="text-xl font-noto-serif text-[#6b0110] mb-6">BIBI PERSIAN KITCHEN</div>
+<p class="font-body text-sm text-[#221a0e]/60 dark:text-[#fff8f3]/60 max-w-xs leading-relaxed">
+                    Bringing the ancient flavors of the Silk Road to the modern table. A sanctuary of spice and hospitality.
+                </p>
+</div>
+<div class="flex flex-wrap gap-12 items-end">
+<div class="flex gap-8">
+<a class="text-[#221a0e]/60 dark:text-[#fff8f3]/60 hover:text-[#775a19] transition-opacity opacity-80 hover:opacity-100 font-manrope text-xs tracking-tight uppercase" href="#">Press</a>
+<a class="text-[#221a0e]/60 dark:text-[#fff8f3]/60 hover:text-[#775a19] transition-opacity opacity-80 hover:opacity-100 font-manrope text-xs tracking-tight uppercase" href="#">Careers</a>
+<a class="text-[#221a0e]/60 dark:text-[#fff8f3]/60 hover:text-[#775a19] transition-opacity opacity-80 hover:opacity-100 font-manrope text-xs tracking-tight uppercase" href="#">Privacy</a>
+<a class="text-[#221a0e]/60 dark:text-[#fff8f3]/60 hover:text-[#775a19] transition-opacity opacity-80 hover:opacity-100 font-manrope text-xs tracking-tight uppercase" href="#">Accessibility</a>
+</div>
+<div class="text-[#6b0110] dark:text-[#ffb4ab] font-manrope text-[10px] tracking-widest uppercase">
+                    © 2024 BIBI PERSIAN KITCHEN. AN EDITORIAL TALE OF FLAVOR.
+                </div>
+</div>
+</div>
+</footer>
+</body></html>

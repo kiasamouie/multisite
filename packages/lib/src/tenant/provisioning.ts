@@ -75,22 +75,41 @@ async function insertSectionsAndBlocks(
 }
 
 /**
+ * Optional overrides accepted at tenant creation time.
+ *
+ * - `selectedPageKeys` — when provided, only template pages whose `key` is
+ *   in the list will be created. When omitted, all plan-default templates
+ *   are provisioned (existing behaviour).
+ * - `featureFlagOverrides` — when provided, the listed flag keys will be
+ *   set to the given enabled value, overriding the plan default. Other
+ *   flags fall back to the plan default.
+ */
+export interface ProvisionOptions {
+  selectedPageKeys?: string[];
+  featureFlagOverrides?: Record<string, boolean>;
+}
+
+/**
  * Provision a new tenant with default pages and feature flags.
  * Called immediately after tenant is created.
  */
 export async function provisionTenant(
   tenantId: number,
-  plan: PlanTier
+  plan: PlanTier,
+  options: ProvisionOptions = {}
 ): Promise<ProvisioningResult> {
   const admin = createAdminClient();
   const errors: string[] = [];
   let flagsCreated = 0;
   let pagesCreated = 0;
+  const { selectedPageKeys, featureFlagOverrides } = options;
+  const selectedSet = selectedPageKeys ? new Set(selectedPageKeys) : null;
 
   try {
     // Step 1: Insert feature flags derived directly from the plan config.
     // We collect all known feature keys from all plans and set each one
-    // to true/false depending on whether this plan includes it.
+    // to true/false depending on whether this plan includes it. Per-flag
+    // overrides are applied last.
     const allKeys = new Set<string>();
     Object.values(PLANS).forEach((p) => p.features.forEach((f) => allKeys.add(f)));
 
@@ -98,7 +117,10 @@ export async function provisionTenant(
     const flagInserts = Array.from(allKeys).map((key) => ({
       tenant_id: tenantId,
       key,
-      enabled: planFeatures.has(key),
+      enabled:
+        featureFlagOverrides && key in featureFlagOverrides
+          ? featureFlagOverrides[key]
+          : planFeatures.has(key),
     }));
 
     const { error: flagError } = await admin
@@ -120,6 +142,8 @@ export async function provisionTenant(
     for (const template of templates) {
       // Only create pages for features actually in this plan
       if (!planFeatures.has(template.feature_key)) continue;
+      // When the caller supplied a page selection, skip un-selected templates
+      if (selectedSet && !selectedSet.has(template.key)) continue;
 
       const { data: pageData, error: pageError } = await admin
         .from("pages")

@@ -358,6 +358,169 @@ revalidateTag("pages", "max");
 
 ---
 
+## Block Componentization Pattern
+
+All Puck blocks follow a consistent componentization structure:
+
+### 1. Render Component
+**Location:** `packages/template/src/components/blocks/[BlockName].tsx`
+
+Responsible for rendering the block's content on the public site. Receives `content` prop (the block's props from the database).
+
+```typescript
+export function HeroBlock({ content }: { content: HeroBlockContent }) {
+  const { title, subtitle, ctaText, ctaLink } = content;
+  return (
+    <section className="hero-section">
+      <h1>{title}</h1>
+      <p>{subtitle}</p>
+      <a href={ctaLink}>{ctaText}</a>
+    </section>
+  );
+}
+```
+
+### 2. Editor Preview Component
+**Location:** `packages/template/src/components/blocks/[BlockName].tsx` (same file)
+
+Optional. Provides a realistic preview in the Puck editor. If not provided, Puck displays a generic form for field editing.
+
+```typescript
+export function HeroBlockPreview({ content }: HeroBlockPreviewProps) {
+  // Renders what the user sees while editing in Puck
+  // Uses same styling as render component for WYSIWYG accuracy
+  return <HeroBlock content={content} />;
+}
+```
+
+### 3. Registry Entry
+**Location:** `packages/template/src/blocks/registry.ts`
+
+Register the block with its metadata and render component.
+
+```typescript
+{
+  type: "hero_block",
+  label: "Hero Section",
+  category: "hero",
+  description: "Full-width hero with title, subtitle, CTA",
+  component: HeroBlock
+}
+```
+
+### 4. Field Configuration
+**Location:** `apps/web/src/lib/puck/config.tsx`
+
+Define the form fields displayed in the Puck editor for this block.
+
+```typescript
+BLOCK_FIELDS: {
+  hero_block: {
+    title: { type: "text", label: "Title" },
+    subtitle: { type: "textarea", label: "Subtitle" },
+    ctaText: { type: "text", label: "Button Text" },
+    ctaLink: { type: "custom", label: "Button Link", render: null }
+  }
+}
+```
+
+**Key Points:**
+- Render component is imported directly in the registry
+- Editor only receives the field config, not custom render logic
+- Media and link pickers use `type: "custom"` with `render: null` (filled in dynamically)
+- All fields must match the TypeScript interface for the block's content
+
+---
+
+## Array Media Pickers (storeAs: "url")
+
+For blocks with array fields containing media (e.g., gallery images, team photos), use the `storeAs: "url"` option to store full media URLs instead of just IDs.
+
+### How It Works
+
+**Traditional approach (ID only):**
+```typescript
+// In database: { images: [{ id: 123 }, { id: 456 }] }
+// At runtime: resolve IDs to URLs (extra query)
+```
+
+**New approach (storeAs: "url"):**
+```typescript
+// In database: { images: [{ url: "/api/media/123/img" }, { url: "/api/media/456/img" }] }
+// At runtime: URLs ready to use, no extra query
+```
+
+### Implementation
+
+**Field Configuration:**
+```typescript
+const MEDIA_URL_ARRAY_FIELDS = [
+  "gallery.images[].url",
+  "team.members[].imageUrl",
+  "portfolio.projects[].imageUrl",
+  "testimonials.testimonials[].avatarUrl",
+  "blog_grid.posts[].imageUrl"
+];
+```
+
+**In BLOCK_FIELDS:**
+```typescript
+gallery_block: {
+  images: {
+    type: "array",
+    label: "Images",
+    arrayFields: {
+      url: {
+        type: "custom",
+        render: createMediaPickerRender(tenantId, "image", { storeAs: "url" })
+      },
+      caption: { type: "text", label: "Caption" }
+    }
+  }
+}
+```
+
+**Media Picker Render Function:**
+```typescript
+// apps/web/src/lib/puck/fields/universal.tsx
+export function createMediaPickerRender(
+  tenantId: number,
+  mediaType?: string,
+  options: { storeAs?: "id" | "url" } = {}
+) {
+  return function MediaPickerRender({ value, onChange }) {
+    if (options.storeAs === "url") {
+      // Convert URL string to media ID for picker
+      const regex = /\/api\/media\/(\d+)\/img/;
+      const match = value?.match?.(regex);
+      const currentId = match ? parseInt(match[1], 10) : null;
+      
+      // When user selects media, store as full URL
+      return (
+        <MediaPicker
+          tenantId={tenantId}
+          mediaType={mediaType}
+          value={currentId}
+          onChange={(id) => onChange(`/api/media/${id}/img`)}
+        />
+      );
+    }
+    // Default: storeAs: "id"
+    return (
+      <MediaPicker tenantId={tenantId} mediaType={mediaType} value={value} onChange={onChange} />
+    );
+  };
+}
+```
+
+**Why storeAs: "url"?**
+- Simplifies public rendering (URLs already available, no ID lookups needed)
+- Reduces database queries at render time
+- Maintains backward compatibility with existing templates that expect URLs
+- Puck editor can validate URLs directly ("media still exists" checks)
+
+---
+
 ## Key Files & Locations
 
 | File | Purpose |
@@ -369,7 +532,10 @@ revalidateTag("pages", "max");
 | `apps/web/src/lib/puck/adapter.ts` | DB ↔ Puck format conversion |
 | `apps/web/src/lib/puck/config.tsx` | Puck block config |
 | `packages/template/src/renderer/PageRenderer.tsx` | Renders sections+blocks |
+| `packages/template/src/renderer/PageContext.tsx` | Context providers (media, flags, library) |
 | `packages/template/src/blocks/registry.ts` | Block type registry |
+| `packages/template/src/components/blocks/*.tsx` | Individual render components |
+| `apps/web/src/lib/puck/fields/universal.tsx` | Media picker factory with storeAs option |
 | `packages/lib/src/config/pageTemplates.ts` | Template definitions |
 | `packages/lib/src/tenant/provisioning.ts` | Tenant setup & sync |
 | `packages/lib/src/stripe/plans.ts` | Plan feature matrix |

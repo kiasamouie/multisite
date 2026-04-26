@@ -127,6 +127,18 @@ When working on:
 
 ---
 
+### 🎨 [Stitch → Puck Provisioning](instructions/stitch-provisioning.instructions.md)
+**Scope:** `documentation/stitch-provisioning/**`, `packages/lib/src/stitch/**`, related scripts
+
+When the user wants to build a tenant page from a **Google Stitch** design:
+- Drop inputs into `documentation/stitch-provisioning/inputs/`
+- Follow `documentation/stitch-provisioning/WORKFLOW.md` (10-step canonical sequence)
+- Always download images as PNG via `scripts/download-stitch-images.mjs`
+- Provision via `scripts/provision-from-stitch.mjs`
+- Add missing block types via `ADD_NEW_BLOCK_TYPE.md` — never write tenant-specific code
+
+---
+
 ## 🔄 Common Workflows
 
 ### Adding a New Admin Page
@@ -217,7 +229,7 @@ pnpm build
 pnpm run db:start          # Start local Supabase
 pnpm run db:migrate        # Push migrations to cloud
 pnpm run db:reset          # Reset cloud DB (⚠️ deletes all data)
-pnpm run db:types          # Regenerate TypeScript types
+pnpm run db:stop           # Stop local Supabase
 
 # Admin tools (if needed)
 node scripts/bootstrap-admin.mjs <email>      # Create platform admin
@@ -228,6 +240,12 @@ node scripts/setup-media-bucket.mjs           # Configure media storage
 
 ## 🤝 Getting Help
 
+### For Puck Block Development
+- **Block Componentization Pattern:** [FRONTEND_STACK_GUIDE.md — Block Componentization](../documentation/FRONTEND_STACK_GUIDE.md#block-componentization-pattern)
+- **Block Field Configuration:** [FRONTEND_STACK_GUIDE.md — Puck Block Field Configuration](../documentation/FRONTEND_STACK_GUIDE.md#puck-block-field-configuration)
+- **Array Media Pickers (storeAs: "url"):** [CONFIG_DRIVEN_PAGES.md — Array Media Pickers](../documentation/CONFIG_DRIVEN_PAGES.md#array-media-pickers-storeas-url)
+
+### For General Questions
 1. **Check the relevant instruction file** — Start with the domain section above
 2. **Read full documentation** — See links in "Full Documentation" section
 3. **Ask Copilot** — Reference the instruction file path in your prompt

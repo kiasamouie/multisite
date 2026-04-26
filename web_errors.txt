@@ -1,0 +1,8 @@
+packages/ui/src/admin/components/Filter/Filter.tsx(373,18): error TS2339: Property 'width' does not exist on type 'SelectFilterConfig | DateFilterConfig | ChipsFilterConfig'.
+  Property 'width' does not exist on type 'ChipsFilterConfig'.
+packages/ui/src/admin/components/Filter/Filter.tsx(373,37): error TS2339: Property 'width' does not exist on type 'SelectFilterConfig | DateFilterConfig | ChipsFilterConfig'.
+  Property 'width' does not exist on type 'ChipsFilterConfig'.
+packages/ui/src/admin/components/Filter/Filter.tsx(380,61): error TS2339: Property 'width' does not exist on type 'SelectFilterConfig | TextFilterConfig | DateFilterConfig | ChipsFilterConfig'.
+  Property 'width' does not exist on type 'ChipsFilterConfig'.
+packages/ui/src/admin/components/Filter/Filter.tsx(380,83): error TS2339: Property 'width' does not exist on type 'SelectFilterConfig | TextFilterConfig | DateFilterConfig | ChipsFilterConfig'.
+  Property 'width' does not exist on type 'ChipsFilterConfig'.

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdmin } from "@/context/admin-context";
-import { useCrudPanel } from "@/hooks/useSupabase";
-import { PageHeader, DataView, CrudModal, StatusBadge } from "@/components/common";
+import { useCrudPanel, useSupabaseList } from "@/hooks/useSupabase";
+import { PageHeader, DataView, CrudModal, EnumBadge } from "@/components/common";
 import type { Column } from "@repo/ui/admin/components";
 import { Button } from "@repo/ui/button";
 import { Label } from "@repo/ui/label";
@@ -64,16 +64,30 @@ export default function BookingsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [tenantFilter, setTenantFilter] = useState("");
+
+  // Show tenant column only in platform-wide view (super admin with no tenant scoping)
+  const isCrossTenant = !tenantId;
+
+  const tenantList = useSupabaseList<{ id: number; name: string } & Record<string, unknown>>({
+    resource: "tenants",
+    select: "id, name",
+    enabled: isCrossTenant,
+    pageSize: 200,
+  });
 
   // Fetch via the service-role admin API route. This bypasses client-side
   // RLS (which requires an explicit membership row for the tenant) and
   // instead trusts server-side auth + platform/tenant scoping.
-  const queryKey = ["admin-bookings", tenantId, page];
+  const queryKey = ["admin-bookings", tenantId, tenantFilter, page];
   const list = useQuery({
     queryKey,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (tenantId) params.set("tenantId", String(tenantId));
+      else if (tenantFilter) params.set("tenantId", tenantFilter);
       const res = await fetch(`/api/admin/bookings?${params}`);
       if (!res.ok) throw new Error("Failed to load bookings");
       const json = await res.json();
@@ -89,15 +103,27 @@ export default function BookingsPage() {
   });
 
   const allData = list.data ?? [];
-  const total = allData.length;
+
+  // Client-side filter by search and status
+  const filteredData = useMemo(() => {
+    return allData.filter(row => {
+      const q = search.trim().toLowerCase();
+      const matchSearch = !q ||
+        row.customer_name.toLowerCase().includes(q) ||
+        row.customer_email.toLowerCase().includes(q);
+      const matchStatus = !statusFilter || row.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [allData, search, statusFilter]);
+
+  const total = filteredData.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const data = allData.slice((page - 1) * pageSize, page * pageSize);
+  const data = filteredData.slice((page - 1) * pageSize, page * pageSize);
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
   const crud = useCrudPanel<BookingRecord>();
 
-  // Show tenant column only in platform-wide view (super admin with no tenant scoping)
-  const isCrossTenant = !tenantId;
+  // isCrossTenant is already defined above
 
   const columns: Column<BookingRecord>[] = [
     {
@@ -140,7 +166,7 @@ export default function BookingsPage() {
       key: "status",
       label: "Status",
       render: (row) => (
-        <StatusBadge status={row.status} />
+        <EnumBadge status={row.status} />
       ),
     },
   ];
@@ -222,9 +248,41 @@ export default function BookingsPage() {
         emptyMessage="No bookings found."
         page={page}
         totalPages={totalPages}
-        onPageChange={setPage}
+        onPageChange={(p) => setPage(p)}
         onRefresh={() => invalidate()}
         onRowClick={(item) => crud.openPanel("edit", item)}
+        filter={{
+          search,
+          onSearchChange: (v) => { setSearch(v); setPage(1); },
+          searchPlaceholder: "Search by customer name or email…",
+          filters: [
+            ...(isCrossTenant ? [{
+              type: "combobox" as const,
+              label: "Tenant",
+              value: tenantFilter,
+              onChange: (v: string) => { setTenantFilter(v); setPage(1); },
+              options: tenantList.data.map(t => ({ value: String(t.id), label: String(t.name) })),
+              placeholder: "All tenants",
+              searchPlaceholder: "Search tenants…",
+              width: "200px",
+            }] : []),
+            {
+              type: "chips" as const,
+              inline: true,
+              value: statusFilter,
+              onChange: (v: string) => { setStatusFilter(v); setPage(1); },
+              options: [
+                { value: "pending",   label: "Pending",   color: { bg: "hsl(var(--warning)/0.1)",     text: "hsl(var(--warning))",     border: "hsl(var(--warning)/0.2)" } },
+                { value: "confirmed", label: "Confirmed", color: { bg: "hsl(var(--success)/0.1)",     text: "hsl(var(--success))",     border: "hsl(var(--success)/0.2)" } },
+                { value: "completed", label: "Completed", color: { bg: "hsl(var(--primary)/0.1)",     text: "hsl(var(--primary))",     border: "hsl(var(--primary)/0.2)" } },
+                { value: "cancelled", label: "Cancelled" },
+                { value: "noshow",    label: "No-Show" },
+              ],
+            },
+          ],
+          hasFilters: search !== "" || statusFilter !== "" || tenantFilter !== "",
+          onClear: () => { setSearch(""); setStatusFilter(""); setTenantFilter(""); setPage(1); },
+        }}
         canDelete
         deleteConfig={{
           onConfirm: handleDelete,

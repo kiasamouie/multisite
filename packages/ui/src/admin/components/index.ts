@@ -1,7 +1,7 @@
 /** Generic reusable admin UI primitives */
 
-export { StatusBadge } from "./StatusBadge";
-export type { StatusBadgeProps } from "./StatusBadge";
+export { EnumBadge } from "./EnumBadge";
+export type { EnumBadgeProps } from "./EnumBadge";
 
 export { InfoCard } from "./InfoCard";
 export type { InfoCardProps } from "./InfoCard";
@@ -17,7 +17,7 @@ export { ConfirmDialog } from "./ConfirmDialog";
 export type { ConfirmDialogProps } from "./ConfirmDialog";
 
 export { Filter } from "./Filter";
-export type { FilterProps, FilterOption, FilterItemConfig, SelectFilterConfig, TextFilterConfig, DateFilterConfig } from "./Filter";
+export type { FilterProps, FilterOption, FilterItemConfig, SelectFilterConfig, TextFilterConfig, DateFilterConfig, ComboboxFilterConfig, ChipsFilterConfig } from "./Filter";
 
 export { EmptyState, LoadingState } from "./EmptyState";
 export type { EmptyStateProps, LoadingStateProps } from "./EmptyState";

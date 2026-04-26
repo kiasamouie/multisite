@@ -9,7 +9,8 @@
     "./renderer/block": "./src/renderer/BlockRenderer.tsx",
     "./renderer/context": "./src/renderer/PageContext.tsx",
     "./types": "./src/types/index.ts",
-    "./blocks/registry": "./src/blocks/registry.ts"
+    "./blocks/registry": "./src/blocks/registry.ts",
+    "./lib/slot-style": "./src/lib/slot-style.ts"
   },
   "dependencies": {
     "@repo/ui": "workspace:*"

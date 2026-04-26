@@ -27,24 +27,38 @@ interface TeamMember extends Record<string, unknown> {
   sort_order: number;
   is_active: boolean;
   created_at: string;
+  tenants?: { id: number; name: string };
 }
 
 export default function TeamPage() {
   const { tenantId } = useAdmin();
+  const isSuper = tenantId === null;
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [tenantFilter, setTenantFilter] = useState("");
+
+  const tenantList = useSupabaseList<{ id: number; name: string } & Record<string, unknown>>({
+    resource: "tenants",
+    select: "id, name",
+    enabled: isSuper,
+    pageSize: 200,
+  });
 
   const filters = useMemo<SupabaseFilter[]>(() => {
     const f: SupabaseFilter[] = [];
-    if (tenantId) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (!isSuper) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (isSuper && tenantFilter) f.push({ field: "tenant_id", operator: "eq", value: Number(tenantFilter) });
     if (search) f.push({ field: "name", operator: "contains", value: search });
+    if (statusFilter !== "") f.push({ field: "is_active", operator: "eq", value: statusFilter === "active" });
     return f;
-  }, [tenantId, search]);
+  }, [tenantId, isSuper, search, statusFilter, tenantFilter]);
 
   const list = useSupabaseList<TeamMember>({
     resource: "team_members",
+    select: isSuper ? "*, tenants(id, name)" : "*",
     filters,
     sorters: [{ field: "sort_order", order: "asc" }],
-    enabled: !!tenantId,
+    enabled: true,
   });
 
   const crud = useCrudPanel<TeamMember>();
@@ -52,6 +66,11 @@ export default function TeamPage() {
   const columns: Column<TeamMember>[] = [
     { key: "name", label: "Name", sortable: true },
     { key: "role", label: "Role", render: (v) => v?.role || "—" },
+    ...(isSuper ? [{
+      key: "tenants" as keyof TeamMember & string,
+      label: "Tenant",
+      render: (v: TeamMember) => <span className="text-xs">{v.tenants?.name ?? "—"}</span>,
+    }] : []),
     {
       key: "is_active",
       label: "Status",
@@ -122,10 +141,40 @@ export default function TeamPage() {
         loading={list.isLoading}
         mode="table"
         emptyMessage="No team members found."
-        filter={{ search, onSearchChange: setSearch, searchPlaceholder: "Search by name\u2026" }}
+        filter={{
+          search,
+          onSearchChange: setSearch,
+          searchPlaceholder: "Search by name\u2026",
+          filters: [
+            ...(isSuper ? [{
+              type: "combobox" as const,
+              label: "Tenant",
+              value: tenantFilter,
+              onChange: setTenantFilter,
+              options: tenantList.data.map(t => ({ value: String(t.id), label: String(t.name) })),
+              placeholder: "All tenants",
+              searchPlaceholder: "Search tenants…",
+              width: "200px",
+            }] : []),
+            {
+              type: "chips" as const,
+              inline: true,
+              value: statusFilter,
+              onChange: setStatusFilter,
+              options: [
+                { value: "active",   label: "Active",   color: { bg: "hsl(var(--success)/0.1)", text: "hsl(var(--success))", border: "hsl(var(--success)/0.2)" } },
+                { value: "inactive", label: "Inactive" },
+              ],
+            },
+          ],
+          hasFilters: search !== "" || statusFilter !== "" || tenantFilter !== "",
+          onClear: () => { setSearch(""); setStatusFilter(""); setTenantFilter(""); },
+        }}
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        pageSize={list.pageSize}
+        onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
         onRefresh={() => list.invalidate()}
         onRowClick={(item) => crud.openPanel("edit", item)}
         canDelete

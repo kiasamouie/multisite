@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@repo/lib/supabase/browser";
 import { useAdmin } from "@/context/admin-context";
-import { PageHeader, ReadOnlyField, DetailLayout, StatusBadge } from "@/components/common";
+import { PageHeader, ReadOnlyField, DetailLayout, EnumBadge } from "@/components/common";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
@@ -91,7 +91,7 @@ export default function SubscriptionDetailPage() {
       <ReadOnlyField label="Subscription ID" value={subscription.stripe_subscription_id} />
       <ReadOnlyField label="Customer ID" value={subscription.stripe_customer_id} />
       <ReadOnlyField label="Status">
-        <StatusBadge status={subscription.status} />
+        <EnumBadge status={subscription.status} />
       </ReadOnlyField>
       <ReadOnlyField label="Price ID" value={subscription.price_id || "—"} />
       <ReadOnlyField label="Created" value={formatDate(subscription.created_at)} />
@@ -112,7 +112,7 @@ export default function SubscriptionDetailPage() {
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Status</span>
-          <StatusBadge status={subscription.status} />
+          <EnumBadge status={subscription.status} />
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Renews</span>

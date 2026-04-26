@@ -1,0 +1,262 @@
+{
+  "tenantId": 22,
+  "pageSlug": "menu",
+  "pageTitle": "Menu",
+  "isHomepage": false,
+  "branding": {
+    "primary_color": "#6b0110",
+    "accent_color": "#775a19",
+    "bg_color": "#fff8f3",
+    "font_family": "Manrope"
+  },
+  "blocks": [
+    {
+      "type": "hero",
+      "position": 0,
+      "content": {
+        "title": { "value": "Our Menu" },
+        "subtitle": { "value": "Authentic Persian cuisine from the heart of West Hampstead. Every dish made fresh with the finest organic ingredients." },
+        "ctaText": "Reserve a Table",
+        "ctaLink": "#booking",
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 1,
+      "content": {
+        "title": { "value": "Cold Starters" },
+        "sectionNumber": "01",
+        "items": [
+          { "name": "Naan", "description": "Organic white and brown flour flatbread.", "price": "2.00" },
+          { "name": "Whole Veggie Naan", "description": "Secret recipe of fresh mixed herbs made in our kitchen.", "price": "5.00" },
+          { "name": "Salad Olivieh", "description": "Potato salad mixed with diced chicken, egg, gherkins, carrot, mayonnaise, garden peas and olive oil.", "price": "6.50" },
+          { "name": "Must-O-Moosir", "description": "Mix of yogurt and wild shallot dip. (V)", "price": "5.50" },
+          { "name": "Must-O-Khiar", "description": "Mix of yogurt, cucumber dip and dry mints. (V)", "price": "5.50" },
+          { "name": "Homous", "description": "Mashed chickpeas blended with tahini, garlic, lemon juice and olive oil. (V)", "price": "5.50" },
+          { "name": "Salad Shirazi", "description": "Freshly made salad of fine chopped cucumber, tomato, onion, dried mint and a touch of fresh lemon juice. (V)", "price": "6.00" },
+          { "name": "Torshi", "description": "Pickled vegetables, chopped or in chunks.", "price": "5.50" },
+          { "name": "Mixed Olives", "description": "A generous selection of mixed marinated olives. (V)", "price": "6.50" },
+          { "name": "BiBi Salad", "description": "Avocado, tomato, cucumber, butter head salad, chia seed, sesame and a touch of lemon juice. (V)", "price": "7.50" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 2,
+      "content": {
+        "title": { "value": "Hot Starters" },
+        "sectionNumber": "02",
+        "featuredItem": {
+          "title": "Sini Mezeh",
+          "description": "A selection of four starters: Kashkeh Bademjan, Mirza Ghasemi, Salad Olivieh and Mast-o-Khiar / Homous — perfect for sharing.",
+          "price": "21.00"
+        },
+        "items": [
+          { "name": "Kashke Bademjan", "description": "Sauteed aubergine, garlic, walnuts, mint and onions with a trickle of whey.", "price": "6.50" },
+          { "name": "Mirza Ghasemi", "description": "Baked crushed chargrilled smoked aubergine with tomatoes and garlic, topped with fried quail egg.", "price": "6.50" },
+          { "name": "Ghel Gheli", "description": "Organic minced meatballs cooked in a fine red sauce.", "price": "6.50" },
+          { "name": "Dolma", "description": "A selection of mixed herbs and rice in green peppers.", "price": "6.50" },
+          { "name": "Bal-e Morgh", "description": "Five slow grilled spicy chicken wings.", "price": "6.50" },
+          { "name": "Halloumi Cheese", "description": "Three pieces of fried halloumi in olive oil.", "price": "6.50" },
+          { "name": "Chips", "description": "Home-made freshly cut chips.", "price": "5.50" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 3,
+      "content": {
+        "title": { "value": "Soups" },
+        "sectionNumber": "03",
+        "items": [
+          { "name": "Red Lentil Soup", "description": "Freshly blended green peppers, onions, dal, olive oil and garlic. (V)", "price": "6.00" },
+          { "name": "Greeny Soup", "description": "Blended mix of fresh broccoli, spinach, potato, oat and a touch of sour cream and lemon juice. (V)", "price": "6.00" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 4,
+      "content": {
+        "title": { "value": "Grills" },
+        "sectionNumber": "04",
+        "featuredItem": {
+          "title": "Sini — Mix Grill for Two",
+          "description": "A skewer of Joojeh, Chenjeh and two skewers of Koobideh with grilled tomato, served with saffron rice.",
+          "price": "40.00"
+        },
+        "items": [
+          { "name": "Kobideh", "description": "Two skewers of juicy minced lamb served with grilled tomato and saffron rice.", "price": "13.50" },
+          { "name": "Joojeh", "description": "Saffron and organic yogurt marinated chargrilled Banham Farm free range chicken, served with saffron rice.", "price": "14.50" },
+          { "name": "Kabab Torsh", "description": "Chargrilled lamb fillet with pomegranate paste, crushed walnuts and fresh mint, served with saffron rice.", "price": "17.50" },
+          { "name": "Baarg", "description": "Chargrilled best end of organic Rhug Farm lamb fillet, served with saffron rice and grilled tomatoes.", "price": "17.00" },
+          { "name": "Makhsos", "description": "Chargrilled skewer of organic Rhug Farm lamb fillet and skewer of minced veal, served with saffron rice.", "price": "21.00" },
+          { "name": "Momtaz", "description": "One skewer of boneless breast of chicken and one of minced lamb, served with saffron rice.", "price": "17.00" },
+          { "name": "Ghafghazi", "description": "A mixed skewer of diced lamb fillet and succulent chicken fillet, served with grilled tomato and saffron rice.", "price": "17.00" },
+          { "name": "BIBI Special", "description": "A mixed skewer of chicken and lamb fillet with three pieces of lamb chops, served with grilled tomato and saffron rice.", "price": "17.00" },
+          { "name": "Bareh Kabab", "description": "One skewer of fine marinated lamb chops served with grilled tomato and saffron rice.", "price": "19.00" },
+          { "name": "Chengeh", "description": "Chargrilled marinated best end of organic Rhug Farm lamb in extra virgin olive oil, served with saffron rice.", "price": "17.00" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 5,
+      "content": {
+        "title": { "value": "Stews & Mains" },
+        "sectionNumber": "05",
+        "featuredItem": {
+          "title": "Ghormeh Sabzi",
+          "description": "A stew of organic lamb with fresh herbs, red kidney beans and dried lime, served with saffron rice. A Persian national treasure.",
+          "price": "17.50"
+        },
+        "items": [
+          { "name": "Khoresh Bamieh", "description": "A classic stew of organic okra, potatoes, tomato and green peppers, served with saffron rice. (V)", "price": "16.00" },
+          { "name": "Khoresh Badenjan", "description": "Fresh tomato paste, fried onion, smashed garlic and sauce with fried aubergine and mushrooms, served with saffron rice. (V)", "price": "14.00" },
+          { "name": "Khoresh Fesenjoon", "description": "Confit duck leg in a sweet and sour sauce of ground walnuts and pomegranate puree, served with saffron rice.", "price": "17.00" },
+          { "name": "Baghali Polo-Ba-Gardan", "description": "A Persian favourite — succulent lamb neck served with fragrant fresh dill and broad bean rice.", "price": "17.00" },
+          { "name": "Zereshk Polo-Ba-Morgh", "description": "A colourful rice dish jewelled with barberries and saffron, accompanied by braised chicken.", "price": "16.00" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 6,
+      "content": {
+        "title": { "value": "Seafood" },
+        "sectionNumber": "06",
+        "featuredItem": {
+          "title": "Sea Bass",
+          "description": "Chargrilled marinated whole sea bass in saffron and fresh lemon juice with chef's special sauce, served with saffron rice.",
+          "price": "18.00"
+        },
+        "items": [
+          { "name": "Meygo", "description": "Tiger prawns marinated in lemon juice, olive oil, paprika and garlic, served with saffron rice.", "price": "18.00" },
+          { "name": "Mahi", "description": "Grilled salmon or pan fried to perfection, served with saffron rice. Chef's signature.", "price": "18.00" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 7,
+      "content": {
+        "title": { "value": "Desserts" },
+        "sectionNumber": "07",
+        "featuredItem": {
+          "title": "Persian Ice Cream",
+          "description": "Traditional saffron ice cream with fresh pistachio. A Bibi classic.",
+          "price": "6.50"
+        },
+        "items": [
+          { "name": "Falloodeh", "description": "Persian rice noodle sorbet served with fresh lime.", "price": "6.50" },
+          { "name": "Shole-Zard", "description": "Home-made Persian sweet pudding rice with pistachio, almond, saffron, rose water and cinnamon.", "price": "6.00" },
+          { "name": "Baghlava", "description": "Filo pastry filled with chopped nuts and sweetened with organic honey, served with ice cream.", "price": "5.00" },
+          { "name": "Chocolate Gateau", "description": "Exceptional chocolate cake flavoured with melted chocolate and cacao powder.", "price": "6.00" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 8,
+      "content": {
+        "title": { "value": "Special Rice" },
+        "sectionNumber": "08",
+        "items": [
+          { "name": "Shirin Polo", "description": "Glamorous sweet rice with candied citrus zest, sweet carrots, almond and pistachio. (V)", "price": "5.00" },
+          { "name": "Zereshk Polo", "description": "Fragrant saffron rice with barberries, pistachio and almonds. (V)", "price": "5.00" },
+          { "name": "Plain Rice", "price": "4.50" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 9,
+      "content": {
+        "title": { "value": "Drinks" },
+        "sectionNumber": "09",
+        "items": [
+          { "name": "Still Water", "description": "Small / Large", "price": "3.00 / 5.00" },
+          { "name": "Sparkling Water", "description": "Small / Large", "price": "3.00 / 5.00" },
+          { "name": "Coke / Diet Coke", "price": "3.00" },
+          { "name": "Fanta / Sprite", "price": "3.00" },
+          { "name": "Dough", "description": "Persian yogurt drink. Small / Large", "price": "3.00 / 5.00" },
+          { "name": "Fresh Juice", "description": "Apple or orange. Small / Large", "price": "5.50" },
+          { "name": "Pot of Green Tea", "price": "5.00" },
+          { "name": "Pot of Persian Tea", "price": "5.00" },
+          { "name": "Beer", "price": "5.00" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 10,
+      "content": {
+        "title": { "value": "Spirits" },
+        "sectionNumber": "10",
+        "items": [
+          { "name": "Black Label", "description": "Single / Double", "price": "4.90 / 6.90" },
+          { "name": "Bells", "description": "Single / Double", "price": "4.35 / 6.35" },
+          { "name": "Jack Daniels", "description": "Single / Double", "price": "4.60 / 6.60" },
+          { "name": "Chivas", "description": "Single / Double", "price": "5.00 / 7.00" },
+          { "name": "Glenfiddich", "description": "Single / Double", "price": "5.60 / 8.70" },
+          { "name": "Glenmorangie", "description": "Single / Double", "price": "5.60 / 8.70" },
+          { "name": "Courvoisier", "description": "Single / Double", "price": "5.60 / 8.70" },
+          { "name": "Vodka", "description": "Single / Double", "price": "4.35 / 6.35" },
+          { "name": "Bacardi Rum", "description": "Single / Double", "price": "4.35 / 6.35" },
+          { "name": "Bombay Sapphire Gin", "description": "Single / Double", "price": "4.60 / 6.60" },
+          { "name": "Gordons Gin", "description": "Single / Double", "price": "4.35 / 6.35" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "menu_category",
+      "position": 11,
+      "content": {
+        "title": { "value": "Wine" },
+        "sectionNumber": "11",
+        "items": [
+          { "name": "Prosecco Spumante Brut — Tenuta Civranetta, Fidora, Veneto, Italy NV", "description": "Champagne & Sparkling" },
+          { "name": "Prosecco Rosé Brut Nature — Tenuta Civranetta, Fidora, Veneto, Italy 2020", "description": "Champagne & Sparkling" },
+          { "name": "Champagne Rimbaud Brut — France NV", "description": "Champagne & Sparkling" },
+          { "name": "Petalo White — Spain 2020", "description": "White" },
+          { "name": "Clef D'Argent Sauvignon Blanc — Cotes de Gascogne, France 2021", "description": "White" },
+          { "name": "Bolfan Riesling — Zagorje, Croatia 2020", "description": "White" },
+          { "name": "Vinabade Albarino — Rias Baixas, Galicia, Spain 2021", "description": "White" },
+          { "name": "Maison Sabadie Reserve Rosé — France 2021", "description": "Rosé" },
+          { "name": "Mouton Cadet Organic Rosé — Bordeaux, France 2021", "description": "Rosé" },
+          { "name": "El Buzo Pinot Noir — Valle Central, Chile 2021", "description": "Red" },
+          { "name": "Theodore Grasset Cotes du Rhone — Rhone Valley, France 2020", "description": "Red" },
+          { "name": "Nero d'Avola — Doc Sicily, Italy 2020", "description": "Red" },
+          { "name": "Chichibio Montepulciano d'Abruzzo — Abruzzo, Italy 2020", "description": "Red" },
+          { "name": "Proemio Origins Malbec — Mendoza, Argentina 2020", "description": "Red" },
+          { "name": "L'Appel des Sereines — Francois Villard, Northern Rhone Valley, France 2020", "description": "Red" }
+        ],
+        "imageUrl": "",
+        "sectionStyle": {}
+      }
+    }
+  ],
+  "warnings": []
+}

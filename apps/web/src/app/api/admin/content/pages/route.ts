@@ -28,9 +28,11 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await auth.admin
     .from("pages")
-    .select("id, title, slug")
+    .select("id, title, slug, sort_order")
     .eq("tenant_id", tid)
     .eq("is_published", true)
+    .neq("page_type", "site_header")
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("title", { ascending: true });
 
   if (error) {

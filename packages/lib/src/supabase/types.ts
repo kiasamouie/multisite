@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       audit_logs: {
@@ -488,6 +513,7 @@ export type Database = {
           page_config: Json | null
           page_type: string | null
           slug: string
+          sort_order: number | null
           tenant_id: number
           title: string
           updated_at: string
@@ -501,6 +527,7 @@ export type Database = {
           page_config?: Json | null
           page_type?: string | null
           slug: string
+          sort_order?: number | null
           tenant_id: number
           title: string
           updated_at?: string
@@ -514,6 +541,7 @@ export type Database = {
           page_config?: Json | null
           page_type?: string | null
           slug?: string
+          sort_order?: number | null
           tenant_id?: number
           title?: string
           updated_at?: string
@@ -546,6 +574,30 @@ export type Database = {
           id?: number
           role?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          created_at: string
+          id: number
+          namespace: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          namespace: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          namespace?: string
+          updated_at?: string
+          value?: Json
         }
         Relationships: []
       }
@@ -611,6 +663,7 @@ export type Database = {
       }
       sections: {
         Row: {
+          anchor_slug: string | null
           created_at: string
           id: number
           page_id: number
@@ -619,6 +672,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          anchor_slug?: string | null
           created_at?: string
           id?: number
           page_id: number
@@ -627,6 +681,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          anchor_slug?: string | null
           created_at?: string
           id?: number
           page_id?: number
@@ -640,6 +695,41 @@ export type Database = {
             columns: ["page_id"]
             isOneToOne: false
             referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_settings: {
+        Row: {
+          created_at: string
+          id: number
+          namespace: string
+          tenant_id: number
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          namespace: string
+          tenant_id: number
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          namespace?: string
+          tenant_id?: number
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -1021,6 +1111,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

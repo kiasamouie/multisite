@@ -8,11 +8,23 @@ import { tenantUpdateSchema } from "@repo/lib/validation/schemas";
 import { normalizeDomain } from "@repo/lib/domain";
 import { z } from "zod";
 
+const brandingSchema = z.object({
+  primary_color: z.string().optional(),
+  accent_color: z.string().optional(),
+  bg_color: z.string().optional(),
+  font_family: z.string().optional(),
+  logo_url: z.string().optional(),
+  favicon_url: z.string().optional(),
+}).partial().optional();
+
 const createTenantSchema = z.object({
   name: z.string().min(1).max(100),
   domain: z.string().min(1).max(255).regex(/^[a-z0-9.-]+$/, "Domain must be lowercase alphanumeric with dots and hyphens"),
   plan: z.enum(["starter", "growth", "pro"]).default("starter"),
   adminEmail: z.string().email().optional().or(z.literal("")),
+  branding: brandingSchema,
+  selectedPageKeys: z.array(z.string()).optional(),
+  featureFlagOverrides: z.record(z.string(), z.boolean()).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -41,7 +53,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { name, plan, adminEmail } = parsed.data;
+  const { name, plan, adminEmail, branding, selectedPageKeys, featureFlagOverrides } = parsed.data;
   let { domain } = parsed.data;
   
   // Normalize domain based on environment (localhost on dev, real domain on prod)
@@ -56,7 +68,12 @@ export async function POST(request: NextRequest) {
 
   const { data: tenant, error: tenantError } = await admin
     .from("tenants")
-    .insert({ name, domain, plan })
+    .insert({
+      name,
+      domain,
+      plan,
+      ...(branding && Object.keys(branding).length > 0 ? { branding } : {}),
+    })
     .select("id")
     .single();
 
@@ -77,7 +94,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Provision default pages and feature flags for the new tenant
-  const provisioningResult = await provisionTenant(tenant.id, plan as "starter" | "growth" | "pro");
+  const provisioningResult = await provisionTenant(
+    tenant.id,
+    plan as "starter" | "growth" | "pro",
+    { selectedPageKeys, featureFlagOverrides },
+  );
   
   if (!provisioningResult.success) {
     console.error(`Provisioning warnings for tenant ${tenant.id}:`, provisioningResult.errors);

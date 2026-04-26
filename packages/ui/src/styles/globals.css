@@ -13,105 +13,105 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  /* ── Light mode — clean off-white with indigo primary ──────────────────── */
+  /* ── Light mode — "Coastal Mist": clean cool-white with deep teal ──────── */
   :root {
-    --background: 222 25% 97%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --background: 220 30% 97%;          /* #f4f6fa cool near-white */
+    --foreground: 222 30% 12%;          /* #15192a near-black navy */
+    --card: 0 0% 100%;                  /* pure white cards */
+    --card-foreground: 222 30% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 239 84% 67%;        /* indigo-500 #6366f1 */
+    --popover-foreground: 222 30% 12%;
+    --primary: 188 100% 23%;            /* #006875 deep teal */
     --primary-foreground: 0 0% 100%;
-    --secondary: 262 60% 80%;
-    --secondary-foreground: 262 60% 20%;
-    --muted: 220 14% 94%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 220 14% 92%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
+    --secondary: 263 97% 42%;           /* #5203d5 medium violet */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 215 22% 94%;               /* #e9ecf2 light gray-blue */
+    --muted-foreground: 220 13% 40%;    /* #5b6478 readable secondary text */
+    --accent: 188 65% 92%;              /* #d8eef1 very light teal hover */
+    --accent-foreground: 188 100% 18%;  /* #00525c teal text on accent */
+    --destructive: 0 75% 50%;           /* #df2020 */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
-    --ring: 239 84% 67%;
+    --border: 215 18% 88%;              /* #d9dee6 crisp border */
+    --input: 215 18% 88%;
+    --ring: 188 100% 23%;               /* primary teal focus ring */
     --radius: 0.5rem;
-    --sidebar-background: 222 25% 97%;
-    --sidebar-foreground: 222 30% 38%;
-    --sidebar-primary: 239 84% 67%;
+    --sidebar-background: 220 32% 96%;  /* #f1f4fa subtle off-white */
+    --sidebar-foreground: 222 24% 32%;  /* #404a60 nav text */
+    --sidebar-primary: 188 100% 23%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 92%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 90%;
-    --sidebar-ring: 239 84% 67%;
-    --chart-1: 239 84% 67%;    /* indigo */
-    --chart-2: 262 60% 62%;    /* violet */
-    --chart-3: 326 80% 66%;    /* pink */
-    --chart-4: 173 58% 40%;    /* teal */
-    --chart-5: 43 96% 56%;     /* amber */
+    --sidebar-accent: 188 65% 92%;
+    --sidebar-accent-foreground: 188 100% 18%;
+    --sidebar-border: 215 18% 88%;
+    --sidebar-ring: 188 100% 23%;
+    --chart-1: 188 100% 35%;   /* teal */
+    --chart-2: 263 80% 55%;    /* violet */
+    --chart-3: 38 92% 50%;     /* amber */
+    --chart-4: 142 65% 40%;    /* green */
+    --chart-5: 326 75% 55%;    /* pink */
 
-    /* Surface hierarchy (light mode defaults) */
-    --surface-lowest: 0 0% 100%;
-    --surface-low: 220 14% 96%;
-    --surface-container: 0 0% 100%;
-    --surface-high: 220 14% 94%;
-    --surface-highest: 220 14% 92%;
-    --surface-bright: 220 13% 90%;
-
-    /* Semantic colors (light mode) */
-    --success: 142 71% 45%;
-    --warning: 38 92% 50%;
-    --outline-variant: 220 13% 90%;
-    --tertiary: 326 80% 66%;
-  }
-
-  /* ── Dark mode — "Obsidian Conductor" palette ──────────────────────────── */
-  .dark {
-    --background: 280 4% 10%;          /* #1a191b deep obsidian base */
-    --foreground: 0 0% 96%;            /* #f5f5f5 near-white text */
-    --card: 270 3% 14%;                /* #242226 elevated surface */
-    --card-foreground: 0 0% 96%;
-    --popover: 270 3% 12%;
-    --popover-foreground: 0 0% 96%;
-    --primary: 275 100% 80%;           /* #cb97ff purple glow */
-    --primary-foreground: 275 100% 15%;
-    --secondary: 187 95% 60%;          /* #3adffa cyan accent */
-    --secondary-foreground: 187 95% 10%;
-    --muted: 270 3% 18%;               /* #2d2b2e recessed surface */
-    --muted-foreground: 0 0% 67%;      /* #adaaab subdued text */
-    --accent: 270 3% 20%;              /* #333133 hover surface */
-    --accent-foreground: 0 0% 96%;
-    --destructive: 349 100% 72%;       /* #ff6e84 */
-    --destructive-foreground: 0 0% 98%;
-    --border: 270 3% 28%;              /* #484849 subtle ghost border */
-    --input: 270 3% 18%;
-    --ring: 275 100% 80%;
-    --sidebar-background: 280 4% 8%;   /* #151315 deepest sidebar layer */
-    --sidebar-foreground: 0 0% 67%;
-    --sidebar-primary: 275 100% 80%;
-    --sidebar-primary-foreground: 275 100% 15%;
-    --sidebar-accent: 270 3% 20%;      /* #333133 active item bg */
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 270 3% 22%;
-    --sidebar-ring: 275 100% 80%;
-    --chart-1: 275 100% 80%;   /* #cb97ff purple */
-    --chart-2: 187 95% 60%;    /* #3adffa cyan */
-    --chart-3: 326 100% 75%;   /* #ff86c3 pink */
-    --chart-4: 100 39% 68%;    /* #a6d189 green */
-    --chart-5: 43 100% 65%;    /* amber */
-
-    /* Surface hierarchy (Octapussy-style depth levels) */
-    --surface-lowest: 280 4% 8%;       /* deepest: modals, code blocks */
-    --surface-low: 270 3% 12%;         /* tables, filter bar bg */
-    --surface-container: 270 3% 14%;   /* cards (same as --card) */
-    --surface-high: 270 3% 18%;        /* hover states */
-    --surface-highest: 270 3% 22%;     /* active states, scrollbar */
-    --surface-bright: 270 3% 28%;      /* bright accents */
+    /* Surface hierarchy (light mode) */
+    --surface-lowest: 0 0% 100%;        /* pure white inputs/code */
+    --surface-low: 220 28% 96%;
+    --surface-container: 0 0% 100%;     /* cards */
+    --surface-high: 220 24% 94%;
+    --surface-highest: 215 22% 92%;
+    --surface-bright: 215 18% 88%;
 
     /* Semantic colors */
-    --success: 100 39% 68%;            /* #a6d189 */
-    --warning: 40 67% 73%;             /* #e5c890 */
-    --outline-variant: 270 3% 28%;     /* #484849 borders/dividers */
-    --tertiary: 326 100% 75%;          /* #ff86c3 pink */
+    --success: 142 65% 40%;             /* #2a9956 */
+    --warning: 38 92% 48%;              /* #ed9b07 */
+    --outline-variant: 215 18% 88%;
+    --tertiary: 263 97% 42%;            /* matches secondary violet */
+  }
+
+  /* ── Dark mode — "Deep Sea": navy base with cyan/lavender accents ─────── */
+  .dark {
+    --background: 222 30% 8%;           /* #0f131c deep navy */
+    --foreground: 229 33% 91%;          /* #dfe2ef on-surface */
+    --card: 226 19% 14%;                /* #1c1f29 surface-container */
+    --card-foreground: 229 33% 91%;
+    --popover: 224 22% 12%;             /* #181b25 surface-container-low */
+    --popover-foreground: 229 33% 91%;
+    --primary: 186 100% 48%;            /* #00daf3 vibrant cyan */
+    --primary-foreground: 188 100% 7%;  /* #001f24 deep teal text */
+    --secondary: 255 100% 87%;          /* #cdbdff lavender */
+    --secondary-foreground: 263 100% 29%; /* #370096 deep violet text */
+    --muted: 223 16% 18%;               /* #262a34 surface-container-high */
+    --muted-foreground: 190 15% 76%;    /* #bac9cc on-surface-variant */
+    --accent: 224 16% 21%;              /* #31353f surface-container-highest */
+    --accent-foreground: 229 33% 91%;
+    --destructive: 6 100% 84%;          /* #ffb4ab */
+    --destructive-foreground: 358 100% 21%; /* #690005 */
+    --border: 191 13% 26%;              /* #3b494c outline-variant */
+    --input: 224 16% 19%;               /* slightly inset vs card */
+    --ring: 186 100% 48%;               /* cyan focus ring with glow */
+    --sidebar-background: 222 39% 6%;   /* #0a0e17 surface-container-lowest */
+    --sidebar-foreground: 190 15% 76%;
+    --sidebar-primary: 186 100% 48%;
+    --sidebar-primary-foreground: 188 100% 7%;
+    --sidebar-accent: 224 16% 21%;      /* #31353f active item bg */
+    --sidebar-accent-foreground: 229 33% 91%;
+    --sidebar-border: 191 13% 26%;
+    --sidebar-ring: 186 100% 48%;
+    --chart-1: 186 100% 48%;   /* cyan #00daf3 */
+    --chart-2: 255 100% 87%;   /* lavender #cdbdff */
+    --chart-3: 43 99% 57%;     /* amber #fec931 */
+    --chart-4: 100 39% 68%;    /* green */
+    --chart-5: 326 100% 75%;   /* pink */
+
+    /* Surface hierarchy (Deep Sea depth levels) */
+    --surface-lowest: 222 39% 6%;       /* #0a0e17 deepest */
+    --surface-low: 224 22% 12%;         /* #181b25 */
+    --surface-container: 226 19% 14%;   /* #1c1f29 cards */
+    --surface-high: 223 16% 18%;        /* #262a34 hover */
+    --surface-highest: 224 16% 21%;     /* #31353f active */
+    --surface-bright: 223 10% 27%;      /* #353943 brightest */
+
+    /* Semantic colors */
+    --success: 100 39% 68%;             /* #a6d189 */
+    --warning: 43 99% 57%;              /* #fec931 */
+    --outline-variant: 191 13% 26%;     /* #3b494c */
+    --tertiary: 43 99% 57%;             /* amber accent */
   }
 }
 
@@ -224,12 +224,12 @@
 @layer components {
   /* Glassmorphism panel — dark mode sidebar / header chrome */
   .glass-panel {
-    background: rgba(26, 25, 27, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(15, 19, 28, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
-  /* Gradient primary button */
+  /* Gradient primary button — cyan glow CTA in dark, teal→violet in light */
   .btn-kinetic {
     background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
     color: hsl(var(--primary-foreground));
@@ -238,35 +238,54 @@
   .btn-kinetic:hover {
     opacity: 0.9;
   }
+  .dark .btn-kinetic {
+    box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.45);
+  }
 
   /* Active nav item left accent */
   .nav-active-accent {
     border-left: 2px solid hsl(var(--primary));
     background: hsl(var(--sidebar-accent));
   }
+
+  /* Manrope typography for the admin shell.
+     Scoped to the SidebarProvider wrapper so it does NOT bleed onto
+     tenant-facing public pages (which use --tenant-font). */
+  [data-admin-shell="true"] {
+    font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.005em;
+  }
+  [data-admin-shell="true"] h1,
+  [data-admin-shell="true"] h2,
+  [data-admin-shell="true"] h3,
+  [data-admin-shell="true"] h4 {
+    font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
 }
 
 /* ── Dark mode: glassmorphism on sidebar ────────────────────────────────── */
 .dark [data-sidebar="sidebar"] {
-  background: rgba(21, 19, 21, 0.85) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-right: 1px solid rgba(72, 72, 73, 0.4);
+  background: rgba(10, 14, 23, 0.85) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(59, 73, 76, 0.4);
 }
 
 /* ── Dark mode: frosted header bar ─────────────────────────────────────── */
 .dark .admin-header {
-  background: rgba(26, 25, 27, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(72, 72, 73, 0.3);
+  background: rgba(28, 31, 41, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(59, 73, 76, 0.3);
 }
 
 /* ── Light mode: clean header ───────────────────────────────────────────── */
 .admin-header {
-  background: rgba(255, 255, 255, 0.90);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid hsl(var(--border));
 }
 

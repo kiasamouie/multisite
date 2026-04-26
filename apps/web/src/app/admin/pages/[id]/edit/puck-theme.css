@@ -49,3 +49,32 @@
   background: hsl(var(--border));
   border-radius: 4px;
 }
+
+/* ── Tenant theme preview: when the tenant's saved theme is "dark", the
+ *    Puck canvas preview area gets a matching `color-scheme` hint so
+ *    native form controls (date pickers, scrollbars) render in dark style.
+ *    The block-level colors are already correct via the inline tenant
+ *    theme HSL overrides injected by `editor.tsx`. Scoped to the canvas
+ *    only — the surrounding admin chrome keeps the user's own preference.
+ *    NOTE: Tailwind `dark:` variants (e.g. `prose-invert`) require an
+ *    actual `.dark` ancestor and are intentionally NOT activated here so
+ *    the editor chrome theme stays untouched. The public site renders
+ *    those variants normally via `<div class="dark">` in layout.tsx.  */
+.puck-root[data-tenant-theme="dark"] [class*="PuckCanvas"],
+.puck-root[data-tenant-theme="dark"] [class*="PuckPreview"] {
+  color-scheme: dark;
+}
+
+/* ── Header & Footer page: hide the floating action bar ─────────────────
+ * On the Header & Footer Puck page, drag/duplicate/delete/insert are all
+ * disabled via per-component permissions, so the floating ActionBar that
+ * Puck pins to the top of the selected block has no useful actions and
+ * just visually overlaps the right-side fields panel. Hide it.
+ *
+ * Class names from `@measured/puck/dist/index.css` are hashed
+ * (`_ActionBar_rvadt_1`); we match the stable prefix.
+ */
+.puck-root[data-variant="site_header"] [class*="_ActionBar_"] {
+  display: none !important;
+}
+

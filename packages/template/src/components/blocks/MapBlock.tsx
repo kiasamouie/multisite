@@ -1,14 +1,19 @@
 import type { MapBlockContent } from "../../types";
+import { readStyledText } from "../../lib/content-style";
+import { sectionAttrs, headingAttrs } from "../../lib/styled-block";
 
 export function MapBlock({ content }: { content: MapBlockContent }) {
+  const title = readStyledText(content.title);
+  const sec = sectionAttrs("mx-auto max-w-4xl px-6 py-12", content.sectionStyle);
+  const heading = headingAttrs("mb-6 text-2xl font-bold", title.style);
   return (
-    <section className="mx-auto max-w-4xl px-6 py-12">
-      {content.title && <h2 className="mb-6 text-2xl font-bold">{content.title}</h2>}
+    <section className={sec.className} style={sec.style}>
+      {title.value && <h2 className={heading.className} style={heading.style}>{title.value}</h2>}
       {content.embedUrl ? (
         <div className="relative overflow-hidden rounded-lg pt-[56.25%]">
           <iframe
             src={content.embedUrl}
-            title={content.title || "Map"}
+            title={title.value || "Map"}
             className="absolute inset-0 h-full w-full border-0"
             allowFullScreen
             loading="lazy"

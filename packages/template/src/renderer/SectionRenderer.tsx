@@ -9,7 +9,12 @@ export function SectionRenderer({ section }: SectionRendererProps) {
   const sortedBlocks = [...section.blocks].sort((a, b) => a.position - b.position);
 
   return (
-    <div data-section-type={section.type} data-section-id={section.id}>
+    <div
+      id={section.anchor_slug ?? undefined}
+      data-section-type={section.type}
+      data-section-id={section.id}
+      style={section.anchor_slug ? { scrollMarginTop: "5rem" } : undefined}
+    >
       {sortedBlocks.map((block) => (
         <BlockRenderer key={block.id} block={block} />
       ))}

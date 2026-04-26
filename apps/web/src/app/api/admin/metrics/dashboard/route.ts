@@ -69,9 +69,12 @@ export async function GET(request: NextRequest) {
       return q;
     })(),
 
-    // Pages
+    // Pages — exclude phantom site_header rows used internally for header/footer storage
     (() => {
-      let q = admin.from("pages").select("id, tenant_id, is_published, created_at");
+      let q = admin
+        .from("pages")
+        .select("id, tenant_id, is_published, created_at")
+        .neq("page_type", "site_header");
       if (tenantId) q = q.eq("tenant_id", tenantId);
       return q;
     })(),

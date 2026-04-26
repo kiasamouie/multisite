@@ -1,0 +1,79 @@
+{
+  "tenantId": 22,
+  "pageSlug": "home",
+  "pageTitle": "Home",
+  "isHomepage": true,
+  "branding": {
+    "primary_color": "#6b0110",
+    "accent_color": "#775a19",
+    "bg_color": "#fff8f3",
+    "font_family": "Manrope"
+  },
+  "blocks": [
+    {
+      "type": "hero",
+      "position": 0,
+      "content": {
+        "title": { "value": "A Culinary Silk Road Journey." },
+        "subtitle": { "value": "Established in Tradition" },
+        "ctaText": "View The Menu",
+        "ctaLink": "/menu",
+        "backgroundImageId": 48,
+        "backgroundImage": "/api/media/48/img",
+        "ctaButtonStyle": {},
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "about",
+      "position": 1,
+      "content": {
+        "title": { "value": "A Rainbow Over The Table" },
+        "content": { "value": "Persian cuisine is not just about sustenance; it is an editorial of spices, colors, and centuries of hospitality. BIBI celebrates the heritage of the kitchen — where saffron meets pomegranate in a dance of flavor. \"The kitchen is the heart, the table is the canvas.\"" },
+        "imageId": 49,
+        "imageUrl": "/api/media/49/img",
+        "imageStyle": {},
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "gallery",
+      "position": 2,
+      "content": {
+        "title": { "value": "Curated Plates" },
+        "galleryMediaIds": [50, 51, 52],
+        "images": [
+          { "url": "/api/media/50/img", "alt": "Saffron-infused basmati rice with barberries and pistachios", "caption": "Jeweled Saffron Rice — Chef's Special" },
+          { "url": "/api/media/51/img", "alt": "Glistening lamb kebabs with grilled tomatoes and fresh herbs", "caption": "Barg Kebab" },
+          { "url": "/api/media/52/img", "alt": "Vibrant mezze platter with hummus, pomegranates, and fresh mint", "caption": "Mezze Garden" }
+        ],
+        "sectionStyle": {}
+      }
+    },
+    {
+      "type": "booking_block",
+      "position": 3,
+      "content": {
+        "title": { "value": "Host Your Evening" },
+        "subtitle": { "value": "Reserve your table at BIBI. We look forward to welcoming you to the Silk Road." },
+        "sectionLabel": "Reservations",
+        "buttonText": "Check Availability",
+        "cancelPolicy": "By confirming, you agree to our 24-hour cancellation policy.",
+        "showPartySize": "true",
+        "availableTimes": [
+          { "time": "18:00" },
+          { "time": "19:00" },
+          { "time": "20:00" },
+          { "time": "21:00" }
+        ],
+        "address": "",
+        "phone": "",
+        "contactEmail": "",
+        "backgroundImageId": 53,
+        "backgroundImageUrl": "/api/media/53/img",
+        "sectionStyle": {}
+      }
+    }
+  ],
+  "warnings": []
+}

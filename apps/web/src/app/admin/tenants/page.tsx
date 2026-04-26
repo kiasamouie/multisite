@@ -11,7 +11,7 @@ import {
   PageHeader,
   DataView,
   CrudModal,
-  StatusBadge,
+  EnumBadge,
   InfoCard,
 } from "@/components/common";
 import type { Column } from "@repo/ui/admin/components";
@@ -80,7 +80,7 @@ function TenantDetailsContent({ tenant }: { tenant: TenantRecord }) {
         </div>
         <div className="flex items-center gap-3 px-4 py-2.5">
           <span className="w-24 shrink-0 text-xs text-muted-foreground">Plan</span>
-          <StatusBadge status={tenant.plan} />
+          <EnumBadge status={tenant.plan} />
         </div>
         <div className="flex items-center gap-3 px-4 py-2.5">
           <span className="w-24 shrink-0 text-xs text-muted-foreground">Created</span>
@@ -97,7 +97,7 @@ function TenantDetailsContent({ tenant }: { tenant: TenantRecord }) {
 
 export default function TenantsPage() {
   const [planOptions, setPlanOptions] = useState<PlanOption[]>([]);
-  const [search, setSearch] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
 
   /* ── Stat banner data (inlined) ─────────────────────────────────────── */
   const [tenantStats, setTenantStats] = useState<{
@@ -135,11 +135,22 @@ export default function TenantsPage() {
       );
   }, []);
 
+  const [planFilter, setPlanFilter] = useState("");
+
+  // Lightweight fetch of all tenant names to power the name combobox
+  const allTenantNames = useSupabaseList<{ id: number; name: string } & Record<string, unknown>>({
+    resource: "tenants",
+    select: "id, name",
+    pageSize: 500,
+    queryKey: ["tenant-name-options"],
+  });
+
   const filters = useMemo<SupabaseFilter[]>(() => {
     const f: SupabaseFilter[] = [];
-    if (search.trim()) f.push({ field: "name", operator: "contains", value: search });
+    if (nameFilter.trim()) f.push({ field: "name", operator: "eq", value: nameFilter });
+    if (planFilter) f.push({ field: "plan", operator: "eq", value: planFilter });
     return f;
-  }, [search]);
+  }, [nameFilter, planFilter]);
 
   const list = useSupabaseList<TenantRecord>({
     resource: "tenants",
@@ -320,7 +331,7 @@ export default function TenantsPage() {
       key: "plan",
       label: "Plan",
       sortable: true,
-      render: (row) => <StatusBadge status={row.plan} />,
+      render: (row) => <EnumBadge status={row.plan} />,
     },
     {
       key: "created_at",
@@ -353,13 +364,53 @@ export default function TenantsPage() {
         columns={columns}
         data={list.data}
         loading={list.isLoading}
-        onRefresh={() => { list.invalidate(); toast.info("Refreshed", { duration: 1500 }); }}
-        filter={{ search, onSearchChange: setSearch, searchPlaceholder: "Search tenants by name\u2026" }}
+        onRefresh={list.invalidate}
+        filter={{
+          filters: [
+            {
+              type: "combobox" as const,
+              label: "Name",
+              value: nameFilter,
+              onChange: setNameFilter,
+              options: allTenantNames.data.map(t => ({ value: String(t.name), label: String(t.name) })),
+              placeholder: "All tenants",
+              searchPlaceholder: "Search by name…",
+              width: "220px",
+            },
+            {
+              type: "chips" as const,
+              inline: true,
+              value: planFilter,
+              onChange: setPlanFilter,
+              options: [
+                {
+                  value: "starter",
+                  label: "Starter",
+                  color: { bg: "hsl(var(--muted-foreground)/0.1)", text: "hsl(var(--muted-foreground))", border: "hsl(var(--muted-foreground)/0.2)" },
+                },
+                {
+                  value: "growth",
+                  label: "Growth",
+                  color: { bg: "hsl(var(--secondary)/0.1)", text: "hsl(var(--secondary))", border: "hsl(var(--secondary)/0.2)" },
+                },
+                {
+                  value: "pro",
+                  label: "Pro",
+                  color: { bg: "hsl(var(--primary)/0.1)", text: "hsl(var(--primary))", border: "hsl(var(--primary)/0.2)" },
+                },
+              ],
+            },
+          ],
+          hasFilters: nameFilter !== "" || planFilter !== "",
+          onClear: () => { setNameFilter(""); setPlanFilter(""); },
+        }}
         mode="table"
         emptyMessage="No tenants found."
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        pageSize={list.pageSize}
+        onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
         viewHref={(row) => `/admin/tenants/${row.id}`}
         canView
         viewModal={{

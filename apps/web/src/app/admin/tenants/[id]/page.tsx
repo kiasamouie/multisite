@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@repo/lib/supabase/browser";
 import { useAdmin } from "@/context/admin-context";
-import { PageHeader, ReadOnlyField, DetailLayout, StatusBadge } from "@/components/common";
+import { PageHeader, ReadOnlyField, DetailLayout, EnumBadge } from "@/components/common";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
@@ -235,7 +235,7 @@ export default function TenantDetailPage() {
           </ReadOnlyField>
           <ReadOnlyField label="Slug" value={tenant.slug || "—"} />
           <ReadOnlyField label="Plan">
-            <StatusBadge status={tenant.plan} />
+            <EnumBadge status={tenant.plan} />
           </ReadOnlyField>
           <ReadOnlyField label="Created" value={formatDate(tenant.created_at)} />
           <ReadOnlyField label="Updated" value={formatDate(tenant.updated_at)} />

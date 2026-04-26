@@ -29,6 +29,7 @@ interface ContentEvent extends Record<string, unknown> {
   image_url: string | null;
   is_active: boolean;
   created_at: string;
+  tenants?: { id: number; name: string };
 }
 
 function formatDate(v: unknown): string {
@@ -39,20 +40,33 @@ function formatDate(v: unknown): string {
 
 export default function EventsPage() {
   const { tenantId } = useAdmin();
+  const isSuper = tenantId === null;
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [tenantFilter, setTenantFilter] = useState("");
+
+  const tenantList = useSupabaseList<{ id: number; name: string } & Record<string, unknown>>({
+    resource: "tenants",
+    select: "id, name",
+    enabled: isSuper,
+    pageSize: 200,
+  });
 
   const filters = useMemo<SupabaseFilter[]>(() => {
     const f: SupabaseFilter[] = [];
-    if (tenantId) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (!isSuper) f.push({ field: "tenant_id", operator: "eq", value: tenantId });
+    if (isSuper && tenantFilter) f.push({ field: "tenant_id", operator: "eq", value: Number(tenantFilter) });
     if (search) f.push({ field: "name", operator: "contains", value: search });
+    if (statusFilter !== "") f.push({ field: "is_active", operator: "eq", value: statusFilter === "active" });
     return f;
-  }, [tenantId, search]);
+  }, [tenantId, isSuper, search, statusFilter, tenantFilter]);
 
   const list = useSupabaseList<ContentEvent>({
     resource: "content_events",
+    select: isSuper ? "*, tenants(id, name)" : "*",
     filters,
     sorters: [{ field: "date", order: "desc" }],
-    enabled: !!tenantId,
+    enabled: true,
   });
 
   const crud = useCrudPanel<ContentEvent>();
@@ -62,6 +76,11 @@ export default function EventsPage() {
     { key: "date", label: "Date", render: (v) => formatDate(v.date) },
     { key: "venue", label: "Venue", render: (v) => v?.venue || "—" },
     { key: "city", label: "City", render: (v) => v?.city || "—" },
+    ...(isSuper ? [{
+      key: "tenants" as keyof ContentEvent & string,
+      label: "Tenant",
+      render: (v: ContentEvent) => <span className="text-xs">{v.tenants?.name ?? "—"}</span>,
+    }] : []),
     {
       key: "is_active",
       label: "Status",
@@ -133,10 +152,40 @@ export default function EventsPage() {
         loading={list.isLoading}
         mode="table"
         emptyMessage="No events found."
-        filter={{ search, onSearchChange: setSearch, searchPlaceholder: "Search by name\u2026" }}
+        filter={{
+          search,
+          onSearchChange: setSearch,
+          searchPlaceholder: "Search by name\u2026",
+          filters: [
+            ...(isSuper ? [{
+              type: "combobox" as const,
+              label: "Tenant",
+              value: tenantFilter,
+              onChange: setTenantFilter,
+              options: tenantList.data.map(t => ({ value: String(t.id), label: String(t.name) })),
+              placeholder: "All tenants",
+              searchPlaceholder: "Search tenants…",
+              width: "200px",
+            }] : []),
+            {
+              type: "chips" as const,
+              inline: true,
+              value: statusFilter,
+              onChange: setStatusFilter,
+              options: [
+                { value: "active",   label: "Active",   color: { bg: "hsl(var(--success)/0.1)", text: "hsl(var(--success))", border: "hsl(var(--success)/0.2)" } },
+                { value: "inactive", label: "Inactive" },
+              ],
+            },
+          ],
+          hasFilters: search !== "" || statusFilter !== "" || tenantFilter !== "",
+          onClear: () => { setSearch(""); setStatusFilter(""); setTenantFilter(""); },
+        }}
         page={list.page}
         totalPages={list.totalPages}
         onPageChange={list.setPage}
+        pageSize={list.pageSize}
+        onPageSizeChange={(s) => { list.setPageSize(s); list.setPage(1); }}
         onRefresh={() => list.invalidate()}
         onRowClick={(item) => crud.openPanel("edit", item)}
         canDelete

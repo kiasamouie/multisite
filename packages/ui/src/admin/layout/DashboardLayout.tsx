@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -93,7 +93,7 @@ export function DashboardLayout({
   const breadcrumbs = useBreadcrumbs(navItems);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider data-admin-shell="true">
       <AppSidebar
         navItems={navItems}
         header={header}
@@ -118,23 +118,25 @@ export function DashboardLayout({
                 {breadcrumbs.map((crumb, i) => {
                   const isLast = i === breadcrumbs.length - 1;
                   return (
-                    <BreadcrumbItem key={crumb.href}>
+                    <Fragment key={crumb.href}>
                       {i > 0 && <BreadcrumbSeparator className="opacity-40" />}
-                      {isLast ? (
-                        <BreadcrumbPage className="font-medium">
-                          {crumb.label}
-                        </BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink asChild>
-                          <Link
-                            href={crumb.href}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
+                      <BreadcrumbItem>
+                        {isLast ? (
+                          <BreadcrumbPage className="font-medium">
                             {crumb.label}
-                          </Link>
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
+                          </BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink asChild>
+                            <Link
+                              href={crumb.href}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              {crumb.label}
+                            </Link>
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                    </Fragment>
                   );
                 })}
               </BreadcrumbList>

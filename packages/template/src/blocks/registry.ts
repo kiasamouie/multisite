@@ -30,13 +30,18 @@ import { ReviewsCarouselBlock } from "../components/blocks/ReviewsCarouselBlock"
 import { BlogGridBlock } from "../components/blocks/BlogGridBlock";
 import { PageMediaBlock } from "../components/blocks/PageMediaBlock";
 import { BookingBlock } from "../components/blocks/BookingBlock";
+import { NavbarBlock } from "../components/blocks/NavbarBlock";
+import { SiteFooterBlock } from "../components/blocks/SiteFooterBlock";
+import { PageContentPlaceholderBlock } from "../components/blocks/PageContentPlaceholderBlock";
+import { MenuCategoryBlock } from "../components/blocks/MenuCategoryBlock";
 
 export type BlockCategory =
   | "hero"
   | "content"
   | "business"
   | "social"
-  | "info";
+  | "info"
+  | "layout";
 
 export interface BlockRegistryEntry {
   type: string;
@@ -67,7 +72,16 @@ const entries: BlockRegistryEntry[] = [
   { type: "opening_hours", label: "Opening Hours", category: "business", description: "Business hours schedule", component: OpeningHoursBlock },
   { type: "faq", label: "FAQ", category: "business", description: "Frequently asked questions", component: FaqBlock },
   { type: "portfolio", label: "Portfolio", category: "business", description: "Project showcase grid", component: PortfolioBlock },
+  { type: "menu_category", label: "Menu Category", category: "business", description: "Restaurant menu section with items, prices, and optional featured dish", component: MenuCategoryBlock },
   { type: "booking_block", label: "Booking / Reservations", category: "business", description: "Let customers book appointments or reserve tables. Works for restaurants, barbers, salons, gyms, and more.", component: BookingBlock },
+
+  // ── Layout ──
+  { type: "site_header", label: "Site Header / Navbar", category: "layout", description: "Customise the site-wide navigation bar with any mix of text, images, and buttons on either side.", component: NavbarBlock },
+  { type: "site_footer", label: "Site Footer", category: "layout", description: "Customise the site-wide footer with any mix of text, images, and buttons on either side.", component: SiteFooterBlock },
+  // Editor-only spacer used inside the Header & Footer Puck variant. Never
+  // saved to real content pages — see editor.tsx normalizedData and the
+  // BlockRenderer denylist.
+  { type: "page_content_placeholder", label: "Page content", category: "layout", description: "Placeholder used in the editor to keep the footer at the bottom of the preview.", component: PageContentPlaceholderBlock },
 
   // ── Social / Community ──
   { type: "testimonials", label: "Testimonials", category: "social", description: "Customer testimonial cards", component: TestimonialsBlock },
